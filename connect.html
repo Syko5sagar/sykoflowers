@@ -1,15 +1,52 @@
 <!DOCTYPE html>
 <html>
-<body style="background:black;color:white">
+<body style="background:black">
 
 <video id="local" autoplay muted></video>
 <video id="remote" autoplay></video>
 
-<script>
-navigator.mediaDevices.getUserMedia({video:true,audio:true})
-.then(s=>{
- document.getElementById("local").srcObject=s;
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+const app = initializeApp({ apiKey:"AIzaSy...", projectId:"sykolive-846a3"});
+const db=getFirestore(app);
+
+const params=new URLSearchParams(location.search);
+const room=params.get("room");
+const caller=params.get("caller");
+
+const pc=new RTCPeerConnection({
+ iceServers:[{urls:"stun:stun.l.google.com:19302"}]
 });
+
+const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});
+local.srcObject=stream;
+stream.getTracks().forEach(t=>pc.addTrack(t,stream));
+
+pc.ontrack=e=>remote.srcObject=e.streams[0];
+
+const ref=doc(db,"rooms",room);
+
+if(caller){
+ let offer=await pc.createOffer();
+ await pc.setLocalDescription(offer);
+ await setDoc(ref,{offer});
+
+ onSnapshot(ref,async s=>{
+  let d=s.data();
+  if(d?.answer){
+   await pc.setRemoteDescription(d.answer);
+  }
+ });
+}else{
+ let d=(await getDoc(ref)).data();
+ await pc.setRemoteDescription(d.offer);
+
+ let ans=await pc.createAnswer();
+ await pc.setLocalDescription(ans);
+ await updateDoc(ref,{answer:ans});
+}
 </script>
 
 </body>
