@@ -1,57 +1,84 @@
-<!DOCTYPE html>
-<html lang="kn">
-<head>
-    <meta charset="UTF-8">
-    <title>Private Call</title>
-    <style>
-        body { background: #000; margin: 0; color: #32cd32; font-family: sans-serif; text-align: center; }
-        video { width: 100%; height: 45vh; background: #111; object-fit: cover; border-bottom: 1px solid #32cd32; }
-        .controls { padding: 20px; }
-        .timer { font-size: 20px; color: red; margin: 10px; }
-        .btn { padding: 15px 30px; border-radius: 50px; border: none; font-weight: bold; cursor: pointer; }
-        .end { background: red; color: white; }
-    </style>
-</head>
-<body>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, doc, setDoc, updateDoc, onSnapshot, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    <video id="remoteVideo" autoplay playsinline></video>
-    <video id="localVideo" autoplay playsinline muted style="width: 30%; position: absolute; top: 10px; right: 10px; border: 2px solid #32cd32; height: auto;"></video>
+const firebaseConfig = {
+  apiKey: "YOUR_KEY",
+  authDomain: "YOUR_DOMAIN",
+  projectId: "YOUR_ID"
+};
 
-    <div class="timer" id="timer">05:00</div>
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-    <div class="controls">
-        <button class="btn end" onclick="location.href='live-user.html'">END CALL</button>
-    </div>
+const params = new URLSearchParams(window.location.search);
+const roomID = params.get("roomID");
+const mode = params.get("mode");
 
-    <script type="module">
-        // WebRTC ಲಾಜಿಕ್ ಇಲ್ಲಿ ಬರುತ್ತದೆ 
-        // ಇದು Firebase Signaling ಮೂಲಕ ಇಬ್ಬರ ಕ್ಯಾಮೆರಾವನ್ನು ಪರಸ್ಪರ ಕನೆಕ್ಟ್ ಮಾಡುತ್ತದೆ.
-        const localVideo = document.getElementById('localVideo');
-        const remoteVideo = document.getElementById('remoteVideo');
-        let localStream;
-        let peerConnection;
+const localVideo = document.getElementById("localVideo");
+const remoteVideo = document.getElementById("remoteVideo");
 
-        const servers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
+let localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
 
-        async function init() {
-            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            localVideo.srcObject = localStream;
+localVideo.srcObject = localStream;
 
-            // 5 ನಿಮಿಷದ ಟೈಮರ್
-            let timeLeft = 300;
-            setInterval(() => {
-                if(timeLeft > 0) {
-                    timeLeft--;
-                    let m = Math.floor(timeLeft/60), s = timeLeft%60;
-                    document.getElementById('timer').innerText = `${m}:${s < 10 ? '0'+s : s}`;
-                } else {
-                    alert("ಸಮಯ ಮುಗಿದಿದೆ, ಪಾವತಿಸಿ!");
-                    location.href = 'live-user.html';
-                }
-            }, 1000);
-        }
+const pc = new RTCPeerConnection({
+  iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+});
 
-        init();
-    </script>
-</body>
-</html>
+localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+pc.ontrack = e => {
+  remoteVideo.srcObject = e.streams[0];
+};
+
+pc.onicecandidate = async e => {
+  if (e.candidate) {
+    await updateDoc(doc(db, "rooms", roomID), {
+      candidates: arrayUnion(e.candidate.toJSON())
+    });
+  }
+};
+
+if (mode === "caller") {
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+
+  await setDoc(doc(db, "rooms", roomID), {
+    offer: offer
+  });
+
+  onSnapshot(doc(db, "rooms", roomID), async snap => {
+    const data = snap.data();
+    if (data?.answer && !pc.currentRemoteDescription) {
+      await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+    }
+  });
+
+} else {
+  onSnapshot(doc(db, "rooms", roomID), async snap => {
+    const data = snap.data();
+
+    if (data?.offer && !pc.currentRemoteDescription) {
+      await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+
+      await updateDoc(doc(db, "rooms", roomID), {
+        answer: answer
+      });
+    }
+  });
+}
+
+// ICE LISTEN
+onSnapshot(doc(db, "rooms", roomID), async snap => {
+  const data = snap.data();
+  if (data?.candidates) {
+    data.candidates.forEach(c => {
+      pc.addIceCandidate(new RTCIceCandidate(c));
+    });
+  }
+});
+</script>
