@@ -3,70 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rent bf/gf - Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+    <title>Rent bf/gf - Realtime</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
         body { background: #000; color: white; padding-top: 80px; }
+
+        /* ಹೆಡರ್ ಬಾರ್ */
+        .header { position: fixed; top: 0; width: 100%; background: #000; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #32cd32; z-index: 1000; }
+        .app-name { font-size: 22px; color: #32cd32; font-weight: 800; font-style: italic; }
         
-        /* ಹೆಡರ್ ಮತ್ತು ಅಡ್ಮಿನ್ ಪ್ರೊಫೈಲ್ */
-        .header { position: fixed; top: 0; width: 100%; background: #050505; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #32cd32; z-index: 1000; }
-        .app-name { font-size: 20px; color: #32cd32; font-weight: 800; font-style: italic; }
-        .my-status { display: flex; align-items: center; gap: 10px; background: #111; padding: 5px 12px; border-radius: 25px; border: 1px solid #ff007f; }
-        .my-status img { width: 32px; height: 32px; border-radius: 50%; border: 1px solid #ff007f; }
-        .my-status .info { display: flex; flex-direction: column; }
-        .my-status .info span { font-size: 10px; font-weight: bold; color: #ff007f; }
+        /* ಸೇವ್ ಮಾಡಿದ ನಂತರ ಬಲಭಾಗದಲ್ಲಿ ಕೂರುವ ನಿಮ್ಮ ಪ್ರೊಫೈಲ್ */
+        .my-profile-badge { display: none; align-items: center; gap: 10px; background: #111; padding: 5px 15px; border-radius: 25px; border: 1.5px solid #ff0000; cursor: pointer; }
+        .my-profile-badge img { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid #32cd32; }
+        .my-profile-badge span { font-size: 12px; color: #32cd32; font-weight: bold; }
 
-        /* ಪ್ರೊಫೈಲ್ ಸೆಟಪ್ */
-        #setup-section { display: none; max-width: 400px; margin: 40px auto; background: #0d0d0d; padding: 30px; border-radius: 30px; border: 1px solid #32cd32; text-align: center; }
-        .setup-input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 12px; border: 1px solid #222; background: #151515; color: white; }
-        .save-btn { width: 100%; padding: 14px; background: #32cd32; color: #000; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; margin-top: 10px; }
+        /* ಅಪ್ಲೋಡ್ ಕಂಟೈನರ್ */
+        .upload-container { width: 90%; max-width: 400px; background: #111; padding: 30px; border-radius: 25px; border: 2px solid #32cd32; text-align: center; margin: 40px auto; }
+        h2 { color: #ff0000; margin-bottom: 20px; text-transform: uppercase; }
 
-        /* ರಿಯಲ್ ಟೈಮ್ ಫೀಡ್ */
+        .photo-upload { width: 100px; height: 100px; background: #222; border: 2px dashed #ff0000; border-radius: 50%; margin: 0 auto 20px; display: flex; justify-content: center; align-items: center; cursor: pointer; overflow: hidden; }
+        .photo-upload img { width: 100%; height: 100%; object-fit: cover; }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        label { display: block; color: #32cd32; font-size: 14px; margin-bottom: 5px; font-weight: bold; }
+        input { width: 100%; padding: 12px; background: #000; border: 1px solid #ff0000; border-radius: 10px; color: white; outline: none; }
+        .save-btn { width: 100%; padding: 15px; background: #32cd32; color: #000; border: none; border-radius: 12px; font-weight: 800; font-size: 18px; cursor: pointer; transition: 0.3s; }
+        .save-btn:hover { background: #ff0000; color: white; }
+
+        /* ಬೇರೆಯವರ ಪ್ರೊಫೈಲ್ ಲಿಸ್ಟ್ */
         .feed { padding: 15px; max-width: 450px; margin: 0 auto; display: none; }
-        .card { background: #0d0d0d; border: 1px solid #1a1a1a; border-radius: 25px; padding: 18px; margin-bottom: 20px; transition: 0.3s; }
-        .card:hover { border-color: #32cd32; }
-        .user-top { display: flex; align-items: center; gap: 15px; }
-        .user-pic { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 2px solid #32cd32; }
-        .user-meta h3 { font-size: 18px; color: #fff; }
-        .user-meta p { font-size: 14px; color: #ff007f; font-weight: bold; }
-
-        /* ಕಮ್ಯುನಿಕೇಶನ್ ಐಕಾನ್‌ಗಳು */
-        .comm-bar { display: flex; gap: 12px; margin-top: 15px; border-top: 1px solid #1a1a1a; padding-top: 15px; }
-        .comm-btn { flex: 1; height: 45px; background: #1a1a1a; border-radius: 12px; display: flex; justify-content: center; align-items: center; color: white; cursor: pointer; font-size: 18px; transition: 0.2s; }
-        .comm-btn:hover { background: #32cd32; color: #000; }
-        .book-btn { width: 100%; background: linear-gradient(90deg, #ff007f, #7000ff); color: white; border: none; padding: 12px; border-radius: 15px; font-weight: bold; margin-top: 15px; cursor: pointer; }
+        .card { background: #0d0d0d; border: 1px solid #ff0000; border-radius: 20px; padding: 15px; margin-bottom: 15px; display: flex; align-items: center; gap: 15px; }
+        .list-pic { width: 60px; height: 60px; border-radius: 50%; border: 2px solid #32cd32; object-fit: cover; }
+        .user-info { flex: 1; }
+        .user-info h3 { font-size: 16px; color: #fff; }
+        .user-info p { font-size: 13px; color: #32cd32; }
+        .book-now { background: #ff0000; color: white; border: none; padding: 8px 15px; border-radius: 10px; font-size: 12px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <div class="header">
         <div class="app-name">Rent bf/gf</div>
-        <div class="my-status" id="myProfileDisplay">
-            <img id="myPic" src="">
-            <div class="info">
-                <span id="myName">Loading...</span>
-                <span id="myRate" style="color: #32cd32;">₹0 / Day</span>
-            </div>
+        <div class="my-profile-badge" id="myBadge" onclick="location.reload()">
+            <img id="headerPic" src="">
+            <span id="headerName">ಹೆಸರು</span>
         </div>
     </div>
 
-    <div id="setup-section">
-        <h2 style="margin-bottom: 15px;">ವಿವರಗಳನ್ನು ತುಂಬಿರಿ</h2>
-        <input type="number" id="age" class="setup-input" placeholder="ನಿಮ್ಮ ವಯಸ್ಸು (Age)">
-        <input type="number" id="rate" class="setup-input" placeholder="ನಿಮ್ಮ ರೇಟ್ (₹ Amount)">
-        <button class="save-btn" id="saveBtn">ಪ್ರೊಫೈಲ್ ಪ್ರಕಟಿಸಿ</button>
+    <div class="upload-container" id="uploadBox">
+        <h2>ಪ್ರೊಫೈಲ್ ಸೆಟ್ ಮಾಡಿ</h2>
+        <div class="photo-upload" onclick="document.getElementById('fileInput').click()">
+            <img id="previewImg" src="https://cdn-icons-png.flaticon.com/512/149/149071.png">
+        </div>
+        <input type="file" id="fileInput" style="display: none;" accept="image/*">
+
+        <div class="input-group">
+            <label>ನಿಮ್ಮ ಹೆಸರು:</label>
+            <input type="text" id="userName" placeholder="ಹೆಸರನ್ನು ಬರೆಯಿರಿ">
+        </div>
+        <div class="input-group">
+            <label>ನಿಮ್ಮ ವಯಸ್ಸು:</label>
+            <input type="number" id="userAge" placeholder="ವಯಸ್ಸನ್ನು ಬರೆಯಿರಿ">
+        </div>
+        <div class="input-group">
+            <label>ದಿನದ ರೇಟ್ (Amount):</label>
+            <input type="number" id="userRate" placeholder="₹ ಮೊತ್ತ">
+        </div>
+        <button class="save-btn" id="saveBtn">ಸೇವ್ ಮಾಡಿ</button>
     </div>
 
-    <div class="feed" id="main-feed">
-        <p style="color: #444; margin-bottom: 10px; font-size: 13px;">ರಿಯಲ್ ಟೈಮ್ ಬಳಕೆದಾರರು:</p>
-        <div id="users-list"></div>
+    <div class="feed" id="mainFeed">
+        <h4 style="color: #32cd32; margin-bottom: 10px;">Live Profiles</h4>
+        <div id="usersList"></div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = { 
@@ -78,80 +92,74 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        // ಲಾಗಿನ್ ಚೆಕ್ ಮತ್ತು ಡೇಟಾ ಲೋಡ್
+        // ಫೋಟೋ ಪ್ರಿವ್ಯೂ
+        const fileInput = document.getElementById('fileInput');
+        fileInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => document.getElementById('previewImg').src = e.target.result;
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // ಲಾಗಿನ್ ಸ್ಟೇಟಸ್ ಚೆಕ್
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                const userDoc = await getDoc(doc(db, "users", user.uid));
-                if (userDoc.exists()) {
-                    loadFeed(user, userDoc.data());
-                } else {
-                    document.getElementById('setup-section').style.display = 'block';
+                const snap = await getDoc(doc(db, "users", user.uid));
+                if (snap.exists()) {
+                    showFeed(user, snap.data());
                 }
             } else { window.location.href = "index.html"; }
         });
 
-        // ಸೇವ್ ಬಟನ್ ಆಕ್ಷನ್
+        // ಸೇವ್ ಬಟನ್
         document.getElementById('saveBtn').addEventListener('click', async () => {
             const user = auth.currentUser;
-            const uAge = document.getElementById('age').value;
-            const uRate = document.getElementById('rate').value;
-            if(uAge && uRate) {
-                const myData = {
-                    uid: user.uid,
-                    name: user.displayName,
-                    profilePic: user.photoURL,
-                    age: uAge,
-                    rate: uRate,
-                    status: "Online"
-                };
-                await setDoc(doc(db, "users", user.uid), myData);
+            const name = document.getElementById('userName').value;
+            const age = document.getElementById('userAge').value;
+            const rate = document.getElementById('userRate').value;
+            const pic = document.getElementById('previewImg').src;
+
+            if (name && age && rate) {
+                await setDoc(doc(db, "users", user.uid), {
+                    uid: user.uid, name: name, age: age, rate: rate, profilePic: pic
+                });
+                alert("ಪ್ರೊಫೈಲ್ ಸೇವ್ ಆಗಿದೆ!");
                 location.reload();
-            }
+            } else { alert("ಎಲ್ಲಾ ವಿವರ ತುಂಬಿರಿ!"); }
         });
 
-        function loadFeed(me, myData) {
-            document.getElementById('setup-section').style.display = 'none';
-            document.getElementById('main-feed').style.display = 'block';
+        function showFeed(me, myData) {
+            document.getElementById('uploadBox').style.display = 'none';
+            document.getElementById('mainFeed').style.display = 'block';
             
-            // ಅಡ್ಮಿನ್ ಬಾಕ್ಸ್ ಅಪ್‌ಡೇಟ್ (ಸೈಟ್‌ನಲ್ಲಿ ನಿಮ್ಮ ಫೋಟೋ ಕುಳಿತುಕೊಳ್ಳುತ್ತದೆ)
-            document.getElementById('myPic').src = myData.profilePic;
-            document.getElementById('myName').innerText = myData.name;
-            document.getElementById('myRate').innerText = "₹" + myData.rate + " / Day";
+            // ಹೆಡರ್‌ನಲ್ಲಿ ನಿಮ್ಮ ಫೋಟೋ ಸೆಟ್ ಮಾಡುವುದು
+            document.getElementById('myBadge').style.display = 'flex';
+            document.getElementById('headerPic').src = myData.profilePic;
+            document.getElementById('headerName').innerText = myData.name;
 
-            // ರಿಯಲ್ ಟೈಮ್ ಲಿಸ್ಟ್ ಅಪ್‌ಡೇಟ್
+            // ಬೇರೆಯವರ ಲಿಸ್ಟ್ ಲೋಡ್ ಮಾಡುವುದು (Real-time)
             onSnapshot(collection(db, "users"), (snapshot) => {
-                const container = document.getElementById('users-list');
-                container.innerHTML = "";
+                const list = document.getElementById('usersList');
+                list.innerHTML = "";
                 snapshot.forEach((uDoc) => {
                     const u = uDoc.data();
-                    if(u.uid === me.uid) return; // ನಿಮ್ಮ ಪ್ರೊಫೈಲ್ ಲಿಸ್ಟ್‌ನಲ್ಲಿ ಬರಲ್ಲ
+                    if (u.uid === me.uid) return; // ನಿಮ್ಮ ಪ್ರೊಫೈಲ್ ಲಿಸ್ಟ್‌ನಲ್ಲಿ ಕಾಣಿಸಲ್ಲ
 
-                    container.innerHTML += `
+                    list.innerHTML += `
                         <div class="card">
-                            <div class="user-top">
-                                <img src="${u.profilePic}" class="user-pic">
-                                <div class="user-meta">
-                                    <h3>${u.name}, ${u.age}</h3>
-                                    <p>₹${u.rate} / ದಿನಕ್ಕೆ</p>
-                                </div>
+                            <img src="${u.profilePic}" class="list-pic">
+                            <div class="user-info">
+                                <h3>${u.name}, ${u.age}</h3>
+                                <p>₹${u.rate} / Day</p>
                             </div>
-                            <div class="comm-bar">
-                                <div class="comm-btn" onclick="openChat('${u.uid}')"><i class="fa-solid fa-comments"></i></div>
-                                <div class="comm-btn" onclick="openCall('${u.uid}')"><i class="fa-solid fa-phone"></i></div>
-                                <div class="comm-btn" onclick="openVideo('${u.uid}')"><i class="fa-solid fa-video"></i></div>
-                            </div>
-                            <button class="book-btn" onclick="bookNow('${u.uid}', '${u.name}')">ಈಗಲೇ ಕನೆಕ್ಟ್ ಆಗಿ</button>
+                            <button class="book-now" onclick="alert('Booking Requested!')">ಬುಕ್ ಮಾಡಿ</button>
                         </div>
                     `;
                 });
             });
         }
-
-        // ಸಂವಹನ ಫಂಕ್ಷನ್ಗಳು
-        window.bookNow = (uid, name) => alert(name + " ಅವರಿಗೆ ರಿಕ್ವೆಸ್ಟ್ ಕಳುಹಿಸಲಾಗಿದೆ!");
-        window.openChat = (uid) => alert("ಚಾಟ್ ಬಾಕ್ಸ್ ಓಪನ್ ಆಗುತ್ತಿದೆ...");
-        window.openCall = (uid) => alert("ಕಾಲ್ ಕನೆಕ್ಟ್ ಆಗುತ್ತಿದೆ...");
-        window.openVideo = (uid) => alert("ವಿಡಿಯೋ ಕಾಲ್ ಪ್ರಾರಂಭವಾಗುತ್ತಿದೆ...");
     </script>
 </body>
 </html>
