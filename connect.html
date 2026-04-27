@@ -1,43 +1,23 @@
 <!DOCTYPE html>
-<html lang="kn">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SykoLive Video Call</title>
     <style>
-        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; background: #121212; color: white; }
-        .video-container { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; justify-content: center; }
-        video { width: 300px; height: 225px; background: #222; border-radius: 8px; border: 2px solid #333; }
-        #local { border-color: #4CAF50; }
-        .controls { margin-top: 20px; }
+        body { background: #000; color: #fff; text-align: center; font-family: sans-serif; }
+        video { width: 45%; background: #222; margin: 10px; border-radius: 10px; border: 2px solid #444; }
+        .btn-container { margin-top: 20px; }
     </style>
 </head>
 <body>
-
     <h2>SykoLive Video Call</h2>
-    
-    <div class="video-container">
-        <div>
-            <p>ನನ್ನ ವಿಡಿಯೋ</p>
-            <video id="local" autoplay playsinline muted></video>
-        </div>
-        <div>
-            <p>ಗೆಳೆಯರ ವಿಡಿಯೋ</p>
-            <video id="remote" autoplay playsinline></video>
-        </div>
-    </div>
-
-    <div class="controls">
-        <p id="status">ಸ್ಥಿತಿ: ಕನೆಕ್ಟ್ ಆಗುತ್ತಿದೆ...</p>
-    </div>
+    <video id="local" autoplay playsinline muted></video>
+    <video id="remote" autoplay playsinline></video>
+    <div id="status">Status: Initializing...</div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { 
-            getFirestore, doc, setDoc, onSnapshot, collection, addDoc, updateDoc, getDoc 
-        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // 1. ನಿಮ್ಮ ಫೈರ್‌ಬೇಸ್ ಕಾನ್ಫಿಗರೇಶನ್
         const firebaseConfig = {
             apiKey: "AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
             authDomain: "sykolive-846a3.firebaseapp.com",
@@ -49,70 +29,38 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
 
-        // 2. URL ನಿಂದ ರೂಮ್ ಮಾಹಿತಿ ಪಡೆಯುವುದು
-        const params = new URLSearchParams(location.search);
+        const params = new URLSearchParams(window.location.search);
         const roomId = params.get("room");
         const isCaller = params.get("caller") === "true";
 
-        if (!roomId) {
-            alert("ದಯವಿಟ್ಟು URL ನಲ್ಲಿ ರೂಮ್ ಐಡಿ ನೀಡಿ! (ಉದಾಹರಣೆಗೆ: ?room=123)");
-        }
-
-        const pc = new RTCPeerConnection({
-            iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
-        });
-
-        const localVideo = document.getElementById("local");
-        const remoteVideo = document.getElementById("remote");
-        const statusText = document.getElementById("status");
-
-        async function init() {
-            // 3. ಕ್ಯಾಮೆರಾ ಅನುಮತಿ ಪಡೆಯುವುದು
+        async function start() {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            localVideo.srcObject = stream;
+            document.getElementById("local").srcObject = stream;
             stream.getTracks().forEach(track => pc.addTrack(track, stream));
 
-            pc.ontrack = e => {
-                remoteVideo.srcObject = e.streams[0];
-                statusText.innerText = "ಸ್ಥಿತಿ: ಕಾಲ್ ಕನೆಕ್ಟ್ ಆಗಿದೆ!";
-            };
+            pc.ontrack = e => document.getElementById("remote").srcObject = e.streams[0];
 
+            if (!roomId) return document.getElementById("status").innerText = "Error: No Room ID";
             const roomRef = doc(db, "rooms", roomId);
-            const callerCandidates = collection(roomRef, "callerCandidates");
-            const calleeCandidates = collection(roomRef, "calleeCandidates");
 
-            pc.onicecandidate = event => {
-                if (event.candidate) {
-                    addDoc(isCaller ? callerCandidates : calleeCandidates, event.candidate.toJSON());
+            pc.onicecandidate = e => {
+                if (e.candidate) {
+                    addDoc(collection(roomRef, isCaller ? "callerCandidates" : "calleeCandidates"), e.candidate.toJSON());
                 }
             };
 
-            // 4. ಕರೆ ಮಾಡುವವರ ಲಾಜಿಕ್ (Caller)
             if (isCaller) {
-                statusText.innerText = "ಸ್ಥಿತಿ: ಕರೆ ಕಳುಹಿಸಲಾಗುತ್ತಿದೆ...";
                 const offer = await pc.createOffer();
                 await pc.setLocalDescription(offer);
                 await setDoc(roomRef, { offer: { type: offer.type, sdp: offer.sdp } });
-
                 onSnapshot(roomRef, async snap => {
                     const data = snap.data();
-                    if (data?.answer && !pc.currentRemoteDescription) {
-                        await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-                    }
+                    if (data?.answer && !pc.currentRemoteDescription) await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
                 });
-
-                onSnapshot(calleeCandidates, snap => {
-                    snap.docChanges().forEach(change => {
-                        if (change.type === "added") pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
-                    });
-                });
-
+                onSnapshot(collection(roomRef, "calleeCandidates"), s => s.docChanges().forEach(c => { if (c.type === "added") pc.addIceCandidate(new RTCIceCandidate(c.doc.data())); }));
             } else {
-                // 5. ಕರೆ ಸ್ವೀಕರಿಸುವವರ ಲಾಜಿಕ್ (Callee)
-                statusText.innerText = "ಸ್ಥಿತಿ: ಕರೆಯನ್ನು ಸ್ವೀಕರಿಸಲಾಗುತ್ತಿದೆ...";
-                
-                // ಆಫರ್ ಬಂದಾಗ ಮಾತ್ರ ಕೆಲಸ ಮಾಡು
                 onSnapshot(roomRef, async snap => {
                     const data = snap.data();
                     if (data?.offer && !pc.currentRemoteDescription) {
@@ -122,19 +70,11 @@
                         await updateDoc(roomRef, { answer: { type: answer.type, sdp: answer.sdp } });
                     }
                 });
-
-                onSnapshot(callerCandidates, snap => {
-                    snap.docChanges().forEach(change => {
-                        if (change.type === "added") pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
-                    });
-                });
+                onSnapshot(collection(roomRef, "callerCandidates"), s => s.docChanges().forEach(c => { if (c.type === "added") pc.addIceCandidate(new RTCIceCandidate(c.doc.data())); }));
             }
+            document.getElementById("status").innerText = "Ready!";
         }
-
-        init().catch(e => {
-            console.error(e);
-            statusText.innerText = "ಎರರ್: ಕ್ಯಾಮೆರಾ ಪರ್ಮಿಷನ್ ಅಥವಾ ಕನೆಕ್ಷನ್ ದೋಷ!";
-        });
+        start();
     </script>
 </body>
 </html>
