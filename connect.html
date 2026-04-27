@@ -3,51 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WhatsApp Style Call</title>
+    <title>WhatsApp Style Call - SykoLive</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: #0b141a; font-family: sans-serif; overflow: hidden; height: 100vh; display: flex; align-items: center; justify-content: center; }
 
-        /* ಮೈಕ್ರೋಫೋನ್ ಲೈಟಿಂಗ್ ಎಫೆಕ್ಟ್ */
         #lighting-edge {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none; border: 0px solid transparent; transition: border 0.1s ease; z-index: 10;
         }
 
-        /* ರಿಮೋಟ್ ವಿಡಿಯೋ (Full Screen) */
         #remote { width: 100%; height: 100%; object-fit: cover; position: absolute; }
-
-        /* ಲೋಕಲ್ ವಿಡಿಯೋ (Small Floating Window) */
         #local { 
-            position: absolute; top: 20px; right: 20px; width: 100px; height: 150px; 
+            position: absolute; top: 20px; right: 20px; width: 110px; height: 160px; 
             border-radius: 12px; object-fit: cover; border: 2px solid #fff; z-index: 5;
-            transition: 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
 
-        /* ಫಿಲ್ಟರ್‌ಗಳ ಪ್ಯಾನಲ್ */
-        .filter-container {
-            position: absolute; bottom: 120px; left: 0; width: 100%;
-            overflow-x: auto; display: flex; gap: 10px; padding: 10px; z-index: 20;
-            background: rgba(0,0,0,0.4); scrollbar-width: none;
+        /* ಫಿಲ್ಟರ್ ಬಾಕ್ಸ್ ವಿನ್ಯಾಸ */
+        .filter-box {
+            position: absolute; bottom: 110px; left: 50%; transform: translateX(-50%);
+            width: 90%; max-width: 400px; background: rgba(11, 20, 26, 0.95);
+            border-radius: 20px; padding: 15px; display: none; z-index: 30;
+            border: 1px solid #232d36; box-shadow: 0 -5px 25px rgba(0,0,0,0.8);
         }
-        .filter-btn {
-            min-width: 60px; height: 60px; border-radius: 50%; border: 2px solid #fff;
-            background: #444; color: white; font-size: 10px; display: flex; 
-            align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
+        .filter-header { display: flex; justify-content: space-between; margin-bottom: 10px; color: #fff; font-size: 14px; }
+        .filter-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+            max-height: 250px; overflow-y: auto; padding-right: 5px;
         }
+        .filter-item {
+            aspect-ratio: 1; background: #232d36; border-radius: 10px;
+            border: 1px solid #3b4a54; cursor: pointer; display: flex;
+            align-items: center; justify-content: center; font-size: 11px; color: #aebac1;
+        }
+        .filter-item:active { background: #00a884; color: white; }
 
-        /* ವಾಟ್ಸಾಪ್ ಕಂಟ್ರೋಲ್ ಬಟನ್ಸ್‌ */
         .controls {
             position: absolute; bottom: 30px; width: 100%; display: flex;
-            justify-content: space-around; align-items: center; z-index: 20;
+            justify-content: center; gap: 25px; align-items: center; z-index: 20;
         }
         .btn {
-            width: 60px; height: 60px; border-radius: 50%; border: none;
-            display: flex; align-items: center; justify-content: center; font-size: 24px; color: white; cursor: pointer;
+            width: 55px; height: 55px; border-radius: 50%; border: none;
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
-        .end-call { background: #ff3b30; }
-        .switch-cam { background: rgba(255,255,255,0.2); }
-        .filter-toggle { background: #075e54; font-size: 14px; }
+        .end-call { background: #ff3b30; color: white; font-size: 28px; }
+        .action-btn { background: rgba(255,255,255,0.15); color: white; font-size: 22px; backdrop-filter: blur(10px); }
+        
+        /* Scrollbar styling for filters */
+        .filter-grid::-webkit-scrollbar { width: 4px; }
+        .filter-grid::-webkit-scrollbar-thumb { background: #3b4a54; border-radius: 10px; }
     </style>
 </head>
 <body>
@@ -57,14 +63,20 @@
     <video id="remote" autoplay playsinline></video>
     <video id="local" autoplay playsinline muted></video>
 
-    <div class="filter-container" id="filters">
-        <div class="filter-btn" onclick="applyFilter('none')">Normal</div>
+    <div class="filter-box" id="filterBox">
+        <div class="filter-header">
+            <span>ವಿಡಿಯೋ ಫಿಲ್ಟರ್‌ಗಳು</span>
+            <span onclick="toggleFilters()" style="cursor:pointer; color:#00a884;">ಮುಚ್ಚು</span>
+        </div>
+        <div class="filter-grid" id="filterGrid">
+            <div class="filter-item" onclick="applyFilter('none')">ಮೂಲ</div>
+        </div>
     </div>
 
     <div class="controls">
-        <button class="btn filter-toggle" onclick="toggleFilters()">Filters</button>
-        <button class="btn switch-cam" onclick="switchCamera()">🔄</button>
-        <button class="btn end-call" onclick="window.location.reload()">📞</button>
+        <button class="btn action-btn" onclick="toggleFilters()">🎨</button>
+        <button class="btn action-btn" onclick="switchCamera()">🔄</button>
+        <button class="btn end-call" onclick="exitCall()">📞</button>
     </div>
 
     <script type="module">
@@ -90,107 +102,103 @@
         const roomId = params.get("room");
         const isCaller = params.get("caller") === "true";
 
+        // 🚪 ಕಾಲ್ ಕಟ್ ಮಾಡಿ ಲೈವ್ ಪುಟಕ್ಕೆ ಹೋಗುವುದು
+        window.exitCall = () => {
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+            }
+            window.location.href = "live.html"; 
+        };
+
         async function init() {
-            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            document.getElementById("local").srcObject = localStream;
-            localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-            
-            // ವಾಯ್ಸ್ ಲೈಟಿಂಗ್ ಎಫೆಕ್ಟ್ ಆರಂಭ
-            setupAudioVisualizer(localStream);
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                document.getElementById("local").srcObject = localStream;
+                localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+                setupAudioVisualizer(localStream);
 
-            pc.ontrack = e => document.getElementById("remote").srcObject = e.streams[0];
+                pc.ontrack = e => document.getElementById("remote").srcObject = e.streams[0];
 
-            if (!roomId) return;
-            const roomRef = doc(db, "rooms", roomId);
+                if (!roomId) return;
+                const roomRef = doc(db, "rooms", roomId);
 
-            pc.onicecandidate = e => {
-                if (e.candidate) addDoc(collection(roomRef, isCaller ? "callerCandidates" : "calleeCandidates"), e.candidate.toJSON());
-            };
+                pc.onicecandidate = e => {
+                    if (e.candidate) addDoc(collection(roomRef, isCaller ? "callerCandidates" : "calleeCandidates"), e.candidate.toJSON());
+                };
 
-            if (isCaller) {
-                const offer = await pc.createOffer();
-                await pc.setLocalDescription(offer);
-                await setDoc(roomRef, { offer: { type: offer.type, sdp: offer.sdp } });
-                onSnapshot(roomRef, async snap => {
-                    const data = snap.data();
-                    if (data?.answer && !pc.currentRemoteDescription) await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-                });
-                onSnapshot(collection(roomRef, "calleeCandidates"), s => s.docChanges().forEach(c => { if (c.type === "added") pc.addIceCandidate(new RTCIceCandidate(c.doc.data())); }));
-            } else {
-                onSnapshot(roomRef, async snap => {
-                    const data = snap.data();
-                    if (data?.offer && !pc.currentRemoteDescription) {
-                        await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-                        const answer = await pc.createAnswer();
-                        await pc.setLocalDescription(answer);
-                        await updateDoc(roomRef, { answer: { type: answer.type, sdp: answer.sdp } });
-                    }
-                });
-                onSnapshot(collection(roomRef, "callerCandidates"), s => s.docChanges().forEach(c => { if (c.type === "added") pc.addIceCandidate(new RTCIceCandidate(c.doc.data())); }));
+                if (isCaller) {
+                    const offer = await pc.createOffer();
+                    await pc.setLocalDescription(offer);
+                    await setDoc(roomRef, { offer: { type: offer.type, sdp: offer.sdp } });
+                    onSnapshot(roomRef, async snap => {
+                        const data = snap.data();
+                        if (data?.answer && !pc.currentRemoteDescription) await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+                    });
+                    onSnapshot(collection(roomRef, "calleeCandidates"), s => s.docChanges().forEach(c => { if (c.type === "added") pc.addIceCandidate(new RTCIceCandidate(c.doc.data())); }));
+                } else {
+                    onSnapshot(roomRef, async snap => {
+                        const data = snap.data();
+                        if (data?.offer && !pc.currentRemoteDescription) {
+                            await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+                            const answer = await pc.createAnswer();
+                            await pc.setLocalDescription(answer);
+                            await updateDoc(roomRef, { answer: { type: answer.type, sdp: answer.sdp } });
+                        }
+                    });
+                    onSnapshot(collection(roomRef, "callerCandidates"), s => s.docChanges().forEach(c => { if (c.type === "added") pc.addIceCandidate(new RTCIceCandidate(c.doc.data())); }));
+                }
+            } catch (err) {
+                console.error("Camera error:", err);
+                alert("ಕ್ಯಾಮೆರಾ ಓಪನ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗುತ್ತಿಲ್ಲ.");
             }
         }
 
-        // 🔄 ಕ್ಯಾಮೆರಾ ಸ್ವಿಚ್ ಫಂಕ್ಷನ್
         window.switchCamera = async () => {
             useFrontCamera = !useFrontCamera;
-            const videoTrack = localStream.getVideoTracks()[0];
-            videoTrack.stop();
-
-            const newStream = await navigator.mediaDevices.getUserMedia({
+            localStream.getTracks().forEach(track => track.stop());
+            localStream = await navigator.mediaDevices.getUserMedia({
                 video: { facingMode: useFrontCamera ? "user" : "environment" },
                 audio: true
             });
-            
-            const newVideoTrack = newStream.getVideoTracks()[0];
+            const videoTrack = localStream.getVideoTracks()[0];
             const sender = pc.getSenders().find(s => s.track.kind === "video");
-            sender.replaceTrack(newVideoTrack);
-            localStream = newStream;
-            document.getElementById("local").srcObject = newStream;
+            sender.replaceTrack(videoTrack);
+            document.getElementById("local").srcObject = localStream;
         };
 
-        // 🎨 50 ಫಿಲ್ಟರ್‌ಗಳನ್ನು ಆಡ್ ಮಾಡುವುದು
-        const filterList = ["grayscale", "sepia", "invert", "blur", "brightness", "contrast", "hue-rotate", "saturate"];
-        const filterContainer = document.getElementById("filters");
+        // 🎨 50 ಫಿಲ್ಟರ್‌ಗಳನ್ನು ಬಾಕ್ಸ್‌ಗೆ ತುಂಬುವುದು
+        const effects = ["grayscale", "sepia", "invert", "blur", "brightness", "contrast", "hue-rotate", "saturate"];
+        const grid = document.getElementById("filterGrid");
         for (let i = 1; i <= 50; i++) {
-            const btn = document.createElement("div");
-            btn.className = "filter-btn";
-            const fValue = filterList[i % filterList.length] + "(" + (i * 10) + "%)";
-            btn.innerText = "F" + i;
-            btn.onclick = () => applyFilter(fValue);
-            filterContainer.appendChild(btn);
+            const item = document.createElement("div");
+            item.className = "filter-item";
+            const val = effects[i % effects.length] + "(" + (i * 8) + (i % 2 === 0 ? "deg" : "%") + ")";
+            item.innerText = "F" + i;
+            item.onclick = () => applyFilter(val);
+            grid.appendChild(item);
         }
 
-        window.applyFilter = (filter) => {
-            document.getElementById("local").style.filter = filter;
-            // ಬೇರೆಯವರಿಗೂ ಫಿಲ್ಟರ್ ಕಾಣಲು CSS ಬದಲಿಗೆ Canvas ಬಳಸಬೇಕಾಗುತ್ತದೆ, ಇದು ಸದ್ಯಕ್ಕೆ ಲೋಕಲ್ ಪ್ರಿವ್ಯೂಗಾಗಿ.
-        };
-
+        window.applyFilter = (f) => { document.getElementById("local").style.filter = f; };
         window.toggleFilters = () => {
-            const fc = document.getElementById("filters");
-            fc.style.display = fc.style.display === "none" ? "flex" : "none";
+            const box = document.getElementById("filterBox");
+            box.style.display = box.style.display === "block" ? "none" : "block";
         };
 
-        // 🔊 ಮಾತಾಡಿದರೆ ಮಿನುಗುವ ಲೈಟಿಂಗ್ ಎಫೆಕ್ಟ್
         function setupAudioVisualizer(stream) {
-            const audioContext = new AudioContext();
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
             const source = audioContext.createMediaStreamSource(stream);
             const analyzer = audioContext.createAnalyser();
-            analyzer.fftSize = 256;
+            analyzer.fftSize = 64;
             source.connect(analyzer);
-
-            const bufferLength = analyzer.frequencyBinCount;
-            const dataArray = new Uint8Array(bufferLength);
+            const dataArray = new Uint8Array(analyzer.frequencyBinCount);
             const light = document.getElementById("lighting-edge");
 
             function animate() {
                 analyzer.getByteFrequencyData(dataArray);
-                let sum = 0;
-                for (let i = 0; i < bufferLength; i++) sum += dataArray[i];
-                let average = sum / bufferLength;
-
-                if (average > 30) {
-                    light.style.border = (average/5) + "px solid hsl(" + average*2 + ", 100%, 50%)";
-                    light.style.boxShadow = "inset 0 0 20px hsl(" + average*2 + ", 100%, 50%)";
+                let avg = dataArray.reduce((a, b) => a + b) / dataArray.length;
+                if (avg > 25) {
+                    light.style.border = (avg/8) + "px solid hsl(" + avg*3 + ", 100%, 50%)";
+                    light.style.boxShadow = "inset 0 0 30px hsl(" + avg*3 + ", 100%, 50%)";
                 } else {
                     light.style.border = "0px solid transparent";
                     light.style.boxShadow = "none";
