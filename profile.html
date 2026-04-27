@@ -131,7 +131,7 @@ input:focus,select:focus{
 
 <h2>ಪ್ರೊಫೈಲ್ ಸೆಟ್ ಮಾಡಿ</h2>
 
-<div class="photo-upload" onclick="fileInput.click()">
+<div class="photo-upload" onclick="document.getElementById('fileInput').click()">
  <i class="fa-solid fa-camera" id="camIcon"></i>
  <img id="previewImg" style="display:none;">
 </div>
@@ -140,7 +140,7 @@ input:focus,select:focus{
 
 <div class="input-group">
 <label>ಹೆಸರು:</label>
-<input type="text" id="userName">
+<input type="text" id="userName" placeholder="ನಿಮ್ಮ ಹೆಸರು">
 </div>
 
 <div class="input-group">
@@ -153,12 +153,12 @@ input:focus,select:focus{
 
 <div class="input-group">
 <label>ವಯಸ್ಸು:</label>
-<input type="number" id="userAge">
+<input type="number" id="userAge" placeholder="Age">
 </div>
 
 <div class="input-group">
 <label>ಬಾಡಿಗೆ (₹):</label>
-<input type="number" id="userRate">
+<input type="number" id="userRate" placeholder="Rate">
 </div>
 
 <button class="save-btn" id="saveBtn">ಸೇವ್ ಮಾಡಿ</button>
@@ -183,57 +183,69 @@ const auth = getAuth(app);
 let currentUser=null;
 let base64Image="";
 
-// USER LOAD FIX
+// CHECK LOGIN
 onAuthStateChanged(auth,user=>{
  if(user){
   currentUser=user;
  }else{
   alert("Login first");
-  location.href="index.html";
+  window.location.href="index.html";
  }
 });
 
-// IMAGE
-fileInput.onchange=e=>{
+// IMAGE UPLOAD
+document.getElementById("fileInput").addEventListener("change",e=>{
  const file=e.target.files[0];
+ if(!file) return;
+
  const reader=new FileReader();
  reader.onload=()=>{
   base64Image=reader.result;
-  previewImg.src=base64Image;
-  previewImg.style.display="block";
-  camIcon.style.display="none";
+  document.getElementById("previewImg").src=base64Image;
+  document.getElementById("previewImg").style.display="block";
+  document.getElementById("camIcon").style.display="none";
  };
  reader.readAsDataURL(file);
-};
+});
 
-// SAVE
-saveBtn.onclick=async()=>{
- if(!currentUser){
-  alert("Wait...");
-  return;
+// SAVE PROFILE
+document.getElementById("saveBtn").onclick=async()=>{
+ try{
+  if(!currentUser){
+   alert("Wait...");
+   return;
+  }
+
+  const name=document.getElementById("userName").value.trim();
+  const age=document.getElementById("userAge").value;
+  const rate=document.getElementById("userRate").value;
+  const gender=document.getElementById("userGender").value;
+
+  if(!name || !age || !rate || !base64Image){
+   alert("ಎಲ್ಲ ವಿವರ ತುಂಬಿ");
+   return;
+  }
+
+  saveBtn.innerText="Saving...";
+
+  await setDoc(doc(db,"users",currentUser.uid),{
+   uid:currentUser.uid,
+   name,
+   age,
+   rate,
+   gender,
+   profilePic:base64Image,
+   isOnline:true,
+   createdAt:Date.now()
+  });
+
+  // ✅ IMPORTANT FIX
+  window.location.href="live.html";
+
+ }catch(err){
+  alert("Error: "+err.message);
+  saveBtn.innerText="ಸೇವ್ ಮಾಡಿ";
  }
-
- const name=userName.value.trim();
- const age=userAge.value;
- const rate=userRate.value;
- const gender=userGender.value;
-
- if(!name || !age || !rate || !base64Image){
-  alert("ಎಲ್ಲ ವಿವರ ತುಂಬಿ");
-  return;
- }
-
- saveBtn.innerText="Saving...";
-
- await setDoc(doc(db,"users",currentUser.uid),{
-  uid:currentUser.uid,
-  name,age,rate,gender,
-  profilePic:base64Image,
-  isOnline:true,
-  createdAt:Date.now()
- });
-
- location.href="live-user.html";
 };
 </script>
 
