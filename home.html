@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="kn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home - Rent bf/gf</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body { background: #000; color: white; padding-top: 85px; }
+        
+        .header { position: fixed; top: 0; width: 100%; background: #000; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #32cd32; z-index: 1000; }
+        .app-name { font-size: 22px; color: #32cd32; font-weight: 800; font-style: italic; }
+        
+        /* ಸೈಡ್ ಪ್ರೊಫೈಲ್ ಬಾಕ್ಸ್ */
+        .my-box { display: flex; align-items: center; gap: 8px; background: #111; padding: 6px 12px; border-radius: 20px; border: 1px solid #ff007f; }
+        .my-box img { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; }
+        .my-box span { font-size: 11px; color: #ff007f; font-weight: bold; }
+
+        /* ಸೆಟಪ್ ಸೆಕ್ಷನ್ */
+        #setup-section { display: none; max-width: 400px; margin: 50px auto; background: #111; padding: 25px; border-radius: 20px; text-align: center; border: 1px solid #32cd32; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: 1px solid #333; background: #000; color: white; }
+        .save-btn { width: 100%; padding: 12px; background: #32cd32; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+
+        /* ಫೀಡ್ ಮತ್ತು ಕಾರ್ಡ್ಸ್ */
+        .feed { padding: 15px; max-width: 450px; margin: 0 auto; display: none; }
+        .card { background: #0d0d0d; border: 1px solid #222; border-radius: 25px; padding: 15px; margin-bottom: 20px; }
+        .user-pic { width: 70px; height: 70px; border-radius: 50%; border: 2px solid #32cd32; object-fit: cover; }
+        
+        .action-icons { display: flex; gap: 15px; margin-top: 10px; }
+        .icon-btn { width: 45px; height: 45px; border-radius: 50%; background: #222; display: flex; justify-content: center; align-items: center; color: white; cursor: pointer; font-size: 18px; }
+        .icon-btn:hover { background: #32cd32; color: black; }
+        
+        .main-btn { width: 100%; background: #ff007f; color: white; border: none; padding: 12px; border-radius: 15px; font-weight: bold; margin-top: 15px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="app-name">Rent bf/gf</div>
+        <div class="my-box">
+            <img id="headPic" src="https://via.placeholder.com/35">
+            <span id="headName">...</span>
+        </div>
+    </div>
+
+    <div id="setup-section">
+        <h2 style="color:#32cd32;">ಪ್ರೊಫೈಲ್ ಸೆಟ್ ಮಾಡಿ</h2>
+        <input type="number" id="age" placeholder="ನಿಮ್ಮ ವಯಸ್ಸು">
+        <input type="number" id="rate" placeholder="ರೇಟ್ (Amount)">
+        <button class="save-btn" id="saveBtn">Save & Start</button>
+    </div>
+
+    <div class="feed" id="live-feed">
+        <div id="users-container"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ", authDomain: "sykolive-846a3.firebaseapp.com", projectId: "sykolive-846a3" };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                const snap = await getDoc(doc(db, "users", user.uid));
+                if (snap.exists()) {
+                    showApp(user, snap.data());
+                } else {
+                    document.getElementById('setup-section').style.display = 'block';
+                }
+            } else { window.location.href = "index.html"; }
+        });
+
+        document.getElementById('saveBtn').addEventListener('click', async () => {
+            const user = auth.currentUser;
+            const uAge = document.getElementById('age').value;
+            const uRate = document.getElementById('rate').value;
+            if(uAge && uRate) {
+                await setDoc(doc(db, "users", user.uid), { uid: user.uid, name: user.displayName, profilePic: user.photoURL, age: uAge, rate: uRate });
+                location.reload();
+            }
+        });
+
+        function showApp(me, myData) {
+            document.getElementById('setup-section').style.display = 'none';
+            document.getElementById('live-feed').style.display = 'block';
+            document.getElementById('headPic').src = myData.profilePic;
+            document.getElementById('headName').innerText = myData.name;
+
+            onSnapshot(collection(db, "users"), (snapshot) => {
+                const container = document.getElementById('users-container');
+                container.innerHTML = "";
+                snapshot.forEach((uDoc) => {
+                    const u = uDoc.data();
+                    if(u.uid === me.uid) return;
+                    container.innerHTML += `
+                        <div class="card">
+                            <div style="display:flex; gap:15px; align-items:center;">
+                                <img src="${u.profilePic}" class="user-pic">
+                                <div>
+                                    <h3 style="color:#4da6ff;">${u.name}, ${u.age}</h3>
+                                    <span style="color:#ff007f;">₹${u.rate} / Day</span>
+                                </div>
+                            </div>
+                            <div class="action-icons">
+                                <div class="icon-btn" onclick="alert('ಚಾಟ್ ಪ್ರಾರಂಭವಾಗುತ್ತಿದೆ...')"><i class="fa-solid fa-message"></i></div>
+                                <div class="icon-btn" onclick="alert('ಕಾಲ್ ಮಾಡಲಾಗುತ್ತಿದೆ...')"><i class="fa-solid fa-phone"></i></div>
+                                <div class="icon-btn" onclick="alert('ವಿಡಿಯೋ ಕಾಲ್ ಕನೆಕ್ಟ್ ಆಗುತ್ತಿದೆ...')"><i class="fa-solid fa-video"></i></div>
+                            </div>
+                            <button class="main-btn" onclick="book('${u.uid}', '${u.name}')">ಈಗಲೇ ಬುಕ್ ಮಾಡಿ</button>
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        window.book = async (id, name) => {
+            await addDoc(collection(db, "bookings"), { from: auth.currentUser.displayName, to: name, toId: id, time: new Date() });
+            alert(name + " ಅವರಿಗೆ ಬುಕ್ಕಿಂಗ್ ರಿಕ್ವೆಸ್ಟ್ ಕಳುಹಿಸಲಾಗಿದೆ!");
+        };
+    </script>
+</body>
+</html>
