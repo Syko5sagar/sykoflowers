@@ -4,95 +4,146 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RENT BF - Live Users</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        body { background: #000; color: white; font-family: sans-serif; padding: 10px; }
-        .user-card { background: #111; padding: 15px; border-radius: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #222; }
-        .btn { padding: 8px 15px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; }
-        .call-btn { background: #32cd32; color: #000; }
-        .chat-btn { background: #007bff; color: #fff; }
-        h2 { color: #32cd32; text-align: center; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body { background: #000; color: white; }
+        
+        /* Header */
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 2px solid #32cd32; background: #000; position: sticky; top: 0; z-index: 1000; }
+        .logo { color: #32cd32; font-weight: bold; font-size: 20px; }
+        .my-img { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #32cd32; }
+
+        /* User Card Design */
+        #userList { padding: 15px; }
+        .user-card { background: #111; border-radius: 20px; padding: 15px; margin-bottom: 15px; border: 1px solid #222; display: flex; align-items: center; gap: 15px; }
+        .user-card img { width: 70px; height: 70px; border-radius: 50%; border: 2px solid #32cd32; object-fit: cover; }
+        .user-info { flex: 1; }
+        .user-info h3 { font-size: 16px; color: #fff; margin-bottom: 5px; }
+        .user-info p { font-size: 12px; color: #32cd32; font-weight: bold; }
+
+        /* Buttons Group */
+        .actions { display: flex; gap: 8px; }
+        .icon-btn { width: 40px; height: 40px; border-radius: 12px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .chat-btn { background: #007bff; color: white; }
+        .call-btn { background: #32cd32; color: black; }
+        .book-btn { background: #ff0000; color: white; width: auto; padding: 0 15px; font-size: 12px; font-weight: bold; }
+
+        /* Incoming Call Alert */
+        .call-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .call-card { background: #111; padding: 30px; border-radius: 30px; border: 2px solid #32cd32; width: 80%; }
+        .call-card h2 { color: #32cd32; margin-bottom: 20px; }
+        .ans-btn { background: #32cd32; color: #000; padding: 12px 30px; border-radius: 10px; border: none; font-weight: bold; margin: 10px; cursor: pointer; }
+        .rej-btn { background: #ff0000; color: #fff; padding: 12px 30px; border-radius: 10px; border: none; font-weight: bold; margin: 10px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <h2>RENT BF - ಲೈವ್ ಯೂಸರ್ಸ್</h2>
-    <div id="userList">ಲೋಡ್ ಆಗುತ್ತಿದೆ...</div>
+    <div class="header">
+        <div class="logo">RENT BF</div>
+        <img src="" id="myProfilePic" class="my-img">
+    </div>
+
+    <div id="userList">
+        </div>
+
+    <div class="call-overlay" id="incomingCall">
+        <div class="call-card">
+            <h2 id="callerName">ಯಾರೋ...</h2>
+            <p style="margin-bottom: 20px;">ನಿಮಗೆ ವಿಡಿಯೋ ಕಾಲ್ ಮಾಡುತ್ತಿದ್ದಾರೆ</p>
+            <button class="ans-btn" id="acceptBtn">ಅಕ್ಸೆಪ್ಟ್</button>
+            <button class="rej-btn" id="rejectBtn">ರಿಜೆಕ್ಟ್</button>
+        </div>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-        const firebaseConfig = { 
-            apiKey: "AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ", 
-            authDomain: "sykolive-846a3.firebaseapp.com", 
-            projectId: "sykolive-846a3" 
-        };
+        const firebaseConfig = { apiKey: "AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ", authDomain: "sykolive-846a3.firebaseapp.com", projectId: "sykolive-846a3" };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        let myDetails = { uid: "", name: "" };
+        let myData = { uid: "", name: "" };
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                myDetails.uid = user.uid;
-                myDetails.name = user.displayName || "User";
-                loadUsers(user.uid);
-                listenForCalls(user.uid);
+                myData.uid = user.uid;
+                loadUsers();
+                listenForCalls();
             } else { window.location.href = "index.html"; }
         });
 
-        // ಕಾಲ್ ಸ್ವೀಕರಿಸುವ ಭಾಗ (Y ಗಾಗಿ)
-        function listenForCalls(myID) {
-            onSnapshot(doc(db, "calls", myID), (snapshot) => {
-                if (snapshot.exists()) {
-                    const callData = snapshot.data();
-                    if (callData.status === "pending") {
-                        const accept = confirm(callData.fromName + " ಅವರಿಂದ ಕಾಲ್ ಬರುತ್ತಿದೆ. ಅಕ್ಸೆಪ್ಟ್ ಮಾಡುವಿರಾ?");
-                        if (accept) {
-                            // ನೇರವಾಗಿ ಕಾಲ್ ರೂಮ್‌ಗೆ ಹೋಗುವುದು
-                            window.location.href = `connect.html?type=call&mode=receiver&roomID=${callData.roomID}&targetUid=${myID}&targetName=${encodeURIComponent(callData.fromName)}`;
-                        } else {
-                            deleteDoc(doc(db, "calls", myID));
-                        }
-                    }
-                }
-            });
-        }
-
-        function loadUsers(myID) {
-            onSnapshot(collection(db, "users"), (snapshot) => {
+        // ಯೂಸರ್ಸ್ ಲೋಡ್ ಮಾಡುವುದು
+        function loadUsers() {
+            onSnapshot(collection(db, "users"), (snap) => {
                 const list = document.getElementById('userList');
                 list.innerHTML = "";
-                snapshot.forEach((uDoc) => {
-                    const data = uDoc.data();
-                    if (data.uid !== myID) {
-                        const div = document.createElement('div');
-                        div.className = 'user-card';
-                        div.innerHTML = `
-                            <span>${data.name}</span>
-                            <div>
-                                <button class="btn chat-btn" onclick="startChat('${data.uid}','${data.name}')">Chat</button>
-                                <button class="btn call-btn" onclick="makeCall('${data.uid}','${data.name}')">Video Call</button>
-                            </div>`;
-                        list.appendChild(div);
+                snap.forEach((u) => {
+                    const data = u.data();
+                    if (data.uid === myData.uid) {
+                        myData.name = data.name;
+                        document.getElementById('myProfilePic').src = data.profilePic || 'https://via.placeholder.com/40';
+                    } else {
+                        list.innerHTML += `
+                        <div class="user-card">
+                            <img src="${data.profilePic || 'https://via.placeholder.com/70'}">
+                            <div class="user-info">
+                                <h3>${data.name}</h3>
+                                <p>₹${data.rate || '500'}/ದಿನ</p>
+                            </div>
+                            <div class="actions">
+                                <button class="icon-btn chat-btn" onclick="openChat('${data.uid}', '${data.name}')"><i class="fa-solid fa-comment"></i></button>
+                                <button class="icon-btn call-btn" onclick="makeCall('${data.uid}', '${data.name}')"><i class="fa-solid fa-video"></i></button>
+                                <button class="icon-btn book-btn" onclick="bookNow('${data.uid}', '${data.name}')">BOOK</button>
+                            </div>
+                        </div>`;
                     }
                 });
             });
         }
 
-        // ಕಾಲ್ ಮಾಡುವ ಭಾಗ (X ಗಾಗಿ)
-        window.makeCall = (targetUid, targetName) => {
-            const roomID = "ROOM_" + Math.random().toString(36).substring(7);
-            window.location.href = `connect.html?type=call&mode=caller&targetUid=${targetUid}&targetName=${encodeURIComponent(targetName)}&roomID=${roomID}&myName=${encodeURIComponent(myDetails.name)}`;
+        // ಕಾಲ್ ಮಾಡುವುದು
+        window.makeCall = (uid, name) => {
+            const rid = "ROOM_" + Math.random().toString(36).substring(7);
+            window.location.href = `connect.html?type=call&mode=caller&targetUid=${uid}&targetName=${encodeURIComponent(name)}&roomID=${rid}&myName=${encodeURIComponent(myData.name)}`;
         };
 
-        window.startChat = (targetUid, targetName) => {
-            const roomID = "CHAT_" + (myDetails.uid < targetUid ? myDetails.uid + targetUid : targetUid + myDetails.uid);
-            window.location.href = `connect.html?type=chat&mode=caller&targetUid=${targetUid}&targetName=${encodeURIComponent(targetName)}&roomID=${roomID}`;
+        // ಚಾಟ್ ಮಾಡುವುದು
+        window.openChat = (uid, name) => {
+            const rid = "CHAT_" + (myData.uid < uid ? myData.uid + uid : uid + myData.uid);
+            window.location.href = `connect.html?type=chat&mode=caller&targetUid=${uid}&targetName=${encodeURIComponent(name)}&roomID=${rid}`;
         };
+
+        // ಬುಕಿಂಗ್ ಮಾಡುವುದು
+        window.bookNow = async (uid, name) => {
+            if(confirm(name + " ಅವರನ್ನು ಬುಕ್ ಮಾಡಲು ಬಯಸುವಿರಾ?")) {
+                await addDoc(collection(db, "bookings"), { to: uid, from: myData.uid, fromName: myData.name, time: Date.now() });
+                alert("ಬುಕಿಂಗ್ ರಿಕ್ವೆಸ್ಟ್ ಕಳುಹಿಸಲಾಗಿದೆ!");
+            }
+        };
+
+        // ಕಾಲ್ ಸ್ವೀಕರಿಸುವುದು
+        function listenForCalls() {
+            onSnapshot(doc(db, "calls", myData.uid), (docSnap) => {
+                if (docSnap.exists() && docSnap.data().status === "pending") {
+                    const data = docSnap.data();
+                    document.getElementById('callerName').innerText = data.fromName;
+                    document.getElementById('incomingCall').style.display = 'flex';
+                    
+                    document.getElementById('acceptBtn').onclick = () => {
+                        window.location.href = `connect.html?type=call&mode=receiver&roomID=${data.roomID}&targetUid=${myData.uid}&targetName=${encodeURIComponent(data.fromName)}`;
+                    };
+                    document.getElementById('rejectBtn').onclick = () => {
+                        deleteDoc(doc(db, "calls", myData.uid));
+                        document.getElementById('incomingCall').style.display = 'none';
+                    };
+                }
+            });
+        }
     </script>
 </body>
 </html>
