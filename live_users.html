@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="kn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Connect - Realtime</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body { background: #000; color: white; padding-top: 85px; }
+
+        .header { position: fixed; top: 0; width: 100%; background: #111; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #32cd32; z-index: 1000; }
+        .my-profile { display: flex; align-items: center; gap: 10px; border: 1px solid #ff0000; padding: 5px 12px; border-radius: 20px; }
+        .my-profile img { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; }
+
+        .container { padding: 15px; max-width: 500px; margin: 0 auto; }
+        
+        /* ಯೂಸರ್ ಕಾರ್ಡ್ */
+        .user-card { background: #111; border: 1px solid #333; border-radius: 20px; padding: 15px; margin-bottom: 20px; }
+        .user-main { display: flex; align-items: center; gap: 15px; }
+        .user-main img { width: 65px; height: 65px; border-radius: 50%; border: 2px solid #32cd32; object-fit: cover; }
+        .user-info { flex: 1; }
+        
+        .actions { display: flex; gap: 10px; margin-top: 15px; border-top: 1px solid #222; padding-top: 15px; }
+        .btn { flex: 1; padding: 10px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 12px; }
+        .btn-chat { background: #32cd32; color: #000; }
+        .btn-call { background: #ff0000; color: white; }
+
+        /* ನೋಟಿಫಿಕೇಶನ್ ಬಾಕ್ಸ್ */
+        #incomingCall { 
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
+            background: #111; border: 2px solid #32cd32; padding: 20px; border-radius: 20px; 
+            width: 90%; display: none; z-index: 2000; text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div style="color: #32cd32; font-weight: bold;">LIVE CONNECT</div>
+        <div class="my-profile">
+            <img id="myPic" src="">
+            <span id="myName" style="font-size: 12px;">...</span>
+        </div>
+    </div>
+
+    <div id="incomingCall">
+        <h4 id="callerName">ಯಾರೋ ಕಾಲ್ ಮಾಡುತ್ತಿದ್ದಾರೆ...</h4>
+        <div style="display: flex; gap: 10px; margin-top: 15px;">
+            <button class="btn btn-chat" id="acceptBtn">Accept</button>
+            <button class="btn btn-call" onclick="document.getElementById('incomingCall').style.display='none'">Reject</button>
+        </div>
+    </div>
+
+    <div class="container" id="usersList"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        const firebaseConfig = { 
+            apiKey: "AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ", 
+            authDomain: "sykolive-846a3.firebaseapp.com", 
+            projectId: "sykolive-846a3" 
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        let myID = "";
+        let myName = "";
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                myID = user.uid;
+                const snap = await getDoc(doc(db, "users", user.uid));
+                if (snap.exists()) {
+                    myName = snap.data().name;
+                    document.getElementById('myPic').src = snap.data().profilePic;
+                    document.getElementById('myName').innerText = myName;
+                    listenForCalls();
+                    loadUsers();
+                }
+            }
+        });
+
+        // 1. ಕಾಲ್ ರಿಕ್ವೆಸ್ಟ್ ಕಳುಹಿಸುವುದು
+        window.makeCall = async (targetUID, targetName) => {
+            alert(targetName + " ಅವರಿಗೆ ವಿಡಿಯೋ ಕಾಲ್ ರಿಕ್ವೆಸ್ಟ್ ಕಳುಹಿಸಲಾಗಿದೆ...");
+            await setDoc(doc(db, "calls", targetUID), {
+                fromID: myID,
+                fromName: myName,
+                status: "calling",
+                timestamp: Date.now()
+            });
+        };
+
+        // 2. ಇನ್‌ಕಮಿಂಗ್ ಕಾಲ್‌ಗಾಗಿ ಕಾಯುವುದು
+        function listenForCalls() {
+            onSnapshot(doc(db, "calls", myID), (docSnap) => {
+                if (docSnap.exists() && docSnap.data().status === "calling") {
+                    const data = docSnap.data();
+                    document.getElementById('incomingCall').style.display = 'block';
+                    document.getElementById('callerName').innerText = data.fromName + " ಕಾಲ್ ಮಾಡುತ್ತಿದ್ದಾರೆ...";
+                    
+                    document.getElementById('acceptBtn').onclick = () => {
+                        // ವಿಡಿಯೋ ಕಾಲಿಂಗ್ ರೂಮ್ ಲಿಂಕ್ (Jitsi Meet ಬಳಸಲಾಗಿದೆ - ಇದು ಉಚಿತ ಮತ್ತು ರಿಯಲ್ ಆಗಿ ಕೆಲಸ ಮಾಡುತ್ತದೆ)
+                        const roomID = "RentApp_" + data.fromID;
+                        window.open(`https://meet.jit.si/${roomID}`, '_blank');
+                        document.getElementById('incomingCall').style.display = 'none';
+                    };
+                }
+            });
+        }
+
+        // 3. ಯೂಸರ್ಸ್ ಲಿಸ್ಟ್ ಲೋಡ್ ಮಾಡುವುದು
+        function loadUsers() {
+            onSnapshot(collection(db, "users"), (snapshot) => {
+                const list = document.getElementById('usersList');
+                list.innerHTML = "";
+                snapshot.forEach((uDoc) => {
+                    const u = uDoc.data();
+                    if (u.uid === myID) return;
+
+                    list.innerHTML += `
+                        <div class="user-card">
+                            <div class="user-main">
+                                <img src="${u.profilePic}">
+                                <div class="user-info">
+                                    <h3>${u.name}, ${u.age}</h3>
+                                    <p>₹${u.rate} / ದಿನಕ್ಕೆ</p>
+                                </div>
+                            </div>
+                            <div class="actions">
+                                <button class="btn btn-chat" onclick="alert('ಚಾಟ್ ಸಿಸ್ಟಮ್ ಶೀಘ್ರದಲ್ಲೇ ಬರಲಿದೆ!')">
+                                    <i class="fa-solid fa-message"></i> ಚಾಟ್
+                                </button>
+                                <button class="btn btn-call" onclick="makeCall('${u.uid}', '${u.name}')">
+                                    <i class="fa-solid fa-video"></i> ವಿಡಿಯೋ ಕಾಲ್
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+            });
+        }
+    </script>
+</body>
+</html>
