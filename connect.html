@@ -1,122 +1,98 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Video Call</title>
-<style>
-body{margin:0;background:black;color:white;text-align:center}
-video{width:45%;border-radius:10px;margin:5px}
-#controls{position:fixed;bottom:20px;width:100%}
-button{padding:10px 20px;border:none;border-radius:10px;background:red;color:white}
-</style>
-</head>
-
-<body>
-
-<h3>Video Call</h3>
-
-<video id="local" autoplay muted playsinline></video>
-<video id="remote" autoplay playsinline></video>
-
-<div id="controls">
-<button onclick="endCall()">End Call</button>
-</div>
-
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import {
+  getFirestore, doc, setDoc, getDoc, updateDoc,
+  onSnapshot, collection, addDoc
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const app = initializeApp({
- apiKey:"AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
- projectId:"sykolive-846a3"
+  apiKey:"AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
+  projectId:"sykolive-846a3"
 });
 
 const db = getFirestore(app);
 
 const params = new URLSearchParams(location.search);
 const room = params.get("room");
-const isCaller = params.get("caller");
+const caller = params.get("caller");
 
 const pc = new RTCPeerConnection({
- iceServers:[{urls:"stun:stun.l.google.com:19302"}]
+  iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
 });
 
-// 🎥 CAMERA + MIC
-const stream = await navigator.mediaDevices.getUserMedia({video:true,audio:true});
-document.getElementById("local").srcObject = stream;
+// VIDEO ELEMENTS
+const localVideo = document.getElementById("local");
+const remoteVideo = document.getElementById("remote");
 
-stream.getTracks().forEach(track=>pc.addTrack(track,stream));
+// CAMERA + MIC
+const stream = await navigator.mediaDevices.getUserMedia({
+  video: true,
+  audio: true
+});
 
-// 📺 REMOTE VIDEO
-pc.ontrack = e=>{
- document.getElementById("remote").srcObject = e.streams[0];
+localVideo.srcObject = stream;
+stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+// REMOTE STREAM
+pc.ontrack = e => {
+  remoteVideo.srcObject = e.streams[0];
 };
 
-// 🔥 FIREBASE SIGNALING
-const roomRef = doc(db,"rooms",room);
-const callerCandidates = collection(roomRef,"callerCandidates");
-const calleeCandidates = collection(roomRef,"calleeCandidates");
+// 🔥 ICE CANDIDATES SEND
+const roomRef = doc(db, "rooms", room);
+const callerCandidates = collection(roomRef, "callerCandidates");
+const calleeCandidates = collection(roomRef, "calleeCandidates");
 
-// ICE SEND
-pc.onicecandidate = async e=>{
- if(e.candidate){
-  await addDoc(isCaller ? callerCandidates : calleeCandidates, e.candidate.toJSON());
- }
+pc.onicecandidate = async event => {
+  if (event.candidate) {
+    if (caller) {
+      await addDoc(callerCandidates, event.candidate.toJSON());
+    } else {
+      await addDoc(calleeCandidates, event.candidate.toJSON());
+    }
+  }
 };
 
 // CALLER
-if(isCaller){
+if (caller) {
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
 
- const offer = await pc.createOffer();
- await pc.setLocalDescription(offer);
+  await setDoc(roomRef, { offer });
 
- await setDoc(roomRef,{offer});
-
- onSnapshot(roomRef, async snap=>{
-  const data = snap.data();
-  if(data?.answer && !pc.currentRemoteDescription){
-   await pc.setRemoteDescription(data.answer);
-  }
- });
-
- onSnapshot(calleeCandidates,snap=>{
-  snap.docChanges().forEach(async change=>{
-   if(change.type==="added"){
-    await pc.addIceCandidate(change.doc.data());
-   }
+  onSnapshot(roomRef, async snap => {
+    const data = snap.data();
+    if (data?.answer && !pc.currentRemoteDescription) {
+      await pc.setRemoteDescription(data.answer);
+    }
   });
- });
 
-}
-
-// RECEIVER
-else{
-
- const snap = await getDoc(roomRef);
- const data = snap.data();
-
- await pc.setRemoteDescription(data.offer);
-
- const answer = await pc.createAnswer();
- await pc.setLocalDescription(answer);
-
- await updateDoc(roomRef,{answer});
-
- onSnapshot(callerCandidates,snap=>{
-  snap.docChanges().forEach(async change=>{
-   if(change.type==="added"){
-    await pc.addIceCandidate(change.doc.data());
-   }
+  // GET CALLEE ICE
+  onSnapshot(calleeCandidates, snap => {
+    snap.docChanges().forEach(change => {
+      if (change.type === "added") {
+        pc.addIceCandidate(change.doc.data());
+      }
+    });
   });
- });
 
+} else {
+  const roomData = (await getDoc(roomRef)).data();
+
+  await pc.setRemoteDescription(roomData.offer);
+
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+
+  await updateDoc(roomRef, { answer });
+
+  // GET CALLER ICE
+  onSnapshot(callerCandidates, snap => {
+    snap.docChanges().forEach(change => {
+      if (change.type === "added") {
+        pc.addIceCandidate(change.doc.data());
+      }
+    });
+  });
 }
-
-// END
-window.endCall=()=>{
- location.href="live.html";
-};
 </script>
-
-</body>
-</html>
