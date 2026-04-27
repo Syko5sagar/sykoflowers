@@ -1,151 +1,118 @@
 <!DOCTYPE html>
-<html lang="kn">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Video Call</title>
-
 <style>
-body{
- margin:0;
- background:black;
- color:white;
- font-family:sans-serif;
- overflow:hidden;
-}
-
-/* REMOTE FULL */
-#remote{
- position:fixed;
- width:100%;
- height:100%;
- object-fit:cover;
-}
-
-/* LOCAL SMALL */
-#local{
- position:fixed;
- width:120px;
- height:160px;
- bottom:90px;
- right:10px;
- border-radius:10px;
- border:2px solid white;
- object-fit:cover;
-}
-
-/* CONTROLS */
-.controls{
- position:fixed;
- bottom:20px;
- width:100%;
- display:flex;
- justify-content:center;
- gap:20px;
-}
-
-.controls button{
- width:60px;
- height:60px;
- border-radius:50%;
- border:none;
- font-size:20px;
-}
-
+body{margin:0;background:black;color:white;text-align:center}
+video{width:45%;border-radius:10px;margin:5px}
+#controls{position:fixed;bottom:20px;width:100%}
+button{padding:10px 20px;margin:5px;border:none;border-radius:10px}
 .end{background:red;color:white}
 </style>
 </head>
 
 <body>
 
-<video id="remote" autoplay playsinline></video>
-<video id="local" autoplay muted playsinline></video>
+<h3>Video Call</h3>
 
-<div class="controls">
- <button class="end" onclick="endCall()">❌</button>
+<video id="local" autoplay muted playsinline></video>
+<video id="remote" autoplay playsinline></video>
+
+<div id="controls">
+<button class="end" onclick="endCall()">End Call</button>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-const app = initializeApp({
+const firebaseConfig = {
  apiKey:"AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
- authDomain:"sykolive-846a3.firebaseapp.com",
  projectId:"sykolive-846a3"
-});
-
-const db = getFirestore(app);
-
-// URL PARAMS
-const params=new URLSearchParams(location.search);
-const room=params.get("room");
-const isCaller=params.get("caller");
-
-const pc=new RTCPeerConnection({
- iceServers:[{urls:"stun:stun.l.google.com:19302"}]
-});
-
-// MEDIA
-const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});
-local.srcObject=stream;
-stream.getTracks().forEach(track=>pc.addTrack(track,stream));
-
-// REMOTE
-pc.ontrack=e=>{
- remote.srcObject=e.streams[0];
 };
 
-// FIRESTORE REFS
-const roomRef=doc(db,"rooms",room);
-const iceRef=collection(db,"rooms",room,"ice");
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-// ICE SEND
-pc.onicecandidate=async e=>{
- if(e.candidate){
-  await addDoc(iceRef,e.candidate.toJSON());
+const params = new URLSearchParams(location.search);
+const room = params.get("room");
+const isCaller = params.get("caller");
+
+const pc = new RTCPeerConnection({
+ iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+});
+
+let localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+document.getElementById("local").srcObject = localStream;
+
+localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+pc.ontrack = e => {
+ document.getElementById("remote").srcObject = e.streams[0];
+};
+
+// 🔥 ICE FIX
+const roomRef = doc(db, "rooms", room);
+const callerCandidates = collection(roomRef, "callerCandidates");
+const calleeCandidates = collection(roomRef, "calleeCandidates");
+
+pc.onicecandidate = async e => {
+ if (e.candidate) {
+  await addDoc(isCaller ? callerCandidates : calleeCandidates, e.candidate.toJSON());
  }
 };
 
-// ICE RECEIVE
-onSnapshot(iceRef,snap=>{
- snap.docChanges().forEach(change=>{
-  if(change.type==="added"){
-   pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
-  }
- });
-});
-
 // CALLER
-if(isCaller){
+if (isCaller) {
 
- const offer=await pc.createOffer();
+ const offer = await pc.createOffer();
  await pc.setLocalDescription(offer);
 
- await setDoc(roomRef,{offer});
+ await setDoc(roomRef, { offer });
 
- onSnapshot(roomRef,async snap=>{
-  const data=snap.data();
-  if(data?.answer && !pc.currentRemoteDescription){
+ onSnapshot(roomRef, async snap => {
+  const data = snap.data();
+  if (data?.answer && !pc.currentRemoteDescription) {
    await pc.setRemoteDescription(data.answer);
   }
  });
 
-}else{
+ onSnapshot(calleeCandidates, snap => {
+  snap.docChanges().forEach(async change => {
+   if (change.type === "added") {
+    await pc.addIceCandidate(change.doc.data());
+   }
+  });
+ });
 
- const roomData=(await getDoc(roomRef)).data();
-
- await pc.setRemoteDescription(roomData.offer);
-
- const answer=await pc.createAnswer();
- await pc.setLocalDescription(answer);
-
- await updateDoc(roomRef,{answer});
 }
 
-// END
-window.endCall=()=>{
- location.href="live.html";
+// RECEIVER
+else {
+
+ const snap = await getDoc(roomRef);
+ const data = snap.data();
+
+ await pc.setRemoteDescription(data.offer);
+
+ const answer = await pc.createAnswer();
+ await pc.setLocalDescription(answer);
+
+ await updateDoc(roomRef, { answer });
+
+ onSnapshot(callerCandidates, snap => {
+  snap.docChanges().forEach(async change => {
+   if (change.type === "added") {
+    await pc.addIceCandidate(change.doc.data());
+   }
+  });
+ });
+
+}
+
+window.endCall = () => {
+ location.href = "live.html";
 };
 </script>
 
