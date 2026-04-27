@@ -2,114 +2,56 @@
 <html lang="kn">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connecting...</title>
-    <script src="https://meet.jit.si/external_api.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <title>Private Call</title>
     <style>
-        body { background: #000; color: #32cd32; margin: 0; font-family: sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
-        #jitsi-container { flex: 1; background: #111; }
-        .controls { height: 80px; display: flex; justify-content: center; align-items: center; gap: 20px; background: #000; border-top: 1px solid #222; }
-        .btn { width: 55px; height: 55px; border-radius: 50%; border: none; cursor: pointer; font-size: 20px; color: white; display: flex; align-items: center; justify-content: center; }
-        .hangup { background: #ff0000; }
-        .mute { background: #444; }
-        .chat-t { background: #007bff; }
-        .timer { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.8); padding: 10px 20px; border-radius: 30px; border: 1px solid #ff3e3e; color: #ff3e3e; font-weight: bold; z-index: 1000; font-size: 14px; }
-        .pay-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        .pay-card { background: #111; padding: 30px; border-radius: 20px; border: 2px solid #32cd32; width: 80%; }
-        .pay-btn { background: #32cd32; color: #000; padding: 15px; border-radius: 12px; display: block; font-weight: bold; text-decoration: none; margin-top: 20px; }
+        body { background: #000; margin: 0; color: #32cd32; font-family: sans-serif; text-align: center; }
+        video { width: 100%; height: 45vh; background: #111; object-fit: cover; border-bottom: 1px solid #32cd32; }
+        .controls { padding: 20px; }
+        .timer { font-size: 20px; color: red; margin: 10px; }
+        .btn { padding: 15px 30px; border-radius: 50px; border: none; font-weight: bold; cursor: pointer; }
+        .end { background: red; color: white; }
     </style>
 </head>
 <body>
 
-    <div class="timer" id="freeTimer" style="display:none;">05:00 ಫ್ರೀ ಸಮಯ</div>
+    <video id="remoteVideo" autoplay playsinline></video>
+    <video id="localVideo" autoplay playsinline muted style="width: 30%; position: absolute; top: 10px; right: 10px; border: 2px solid #32cd32; height: auto;"></video>
 
-    <div id="jitsi-container"></div>
-
-    <div class="pay-overlay" id="payOverlay">
-        <div class="pay-card">
-            <h3>ಸಮಯ ಮುಗಿದಿದೆ!</h3>
-            <p>ಮುಂದೆ ವೀಕ್ಷಿಸಲು ₹5 ಪಾವತಿಸಿ</p>
-            <a href="upi://pay?pa=sagarbssagarbs231@oksbi&pn=Sagar&am=5&cu=INR" class="pay-btn" onclick="resumeCall()">PAY NOW ₹5</a>
-            <button onclick="exitCall()" style="background:none; border:none; color:#888; margin-top:15px; cursor:pointer;">EXIT</button>
-        </div>
-    </div>
+    <div class="timer" id="timer">05:00</div>
 
     <div class="controls">
-        <button class="btn mute" onclick="api.executeCommand('toggleAudio')"><i class="fa-solid fa-microphone"></i></button>
-        <button class="btn chat-t" onclick="api.executeCommand('toggleChat')"><i class="fa-solid fa-comment-dots"></i></button>
-        <button class="btn hangup" onclick="exitCall()"><i class="fa-solid fa-phone-slash"></i></button>
+        <button class="btn end" onclick="location.href='live-user.html'">END CALL</button>
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        // WebRTC ಲಾಜಿಕ್ ಇಲ್ಲಿ ಬರುತ್ತದೆ 
+        // ಇದು Firebase Signaling ಮೂಲಕ ಇಬ್ಬರ ಕ್ಯಾಮೆರಾವನ್ನು ಪರಸ್ಪರ ಕನೆಕ್ಟ್ ಮಾಡುತ್ತದೆ.
+        const localVideo = document.getElementById('localVideo');
+        const remoteVideo = document.getElementById('remoteVideo');
+        let localStream;
+        let peerConnection;
 
-        const firebaseConfig = { apiKey: "AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ", authDomain: "sykolive-846a3.firebaseapp.com", projectId: "sykolive-846a3" };
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        const servers = { iceServers: [{ urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }] };
 
-        const params = new URLSearchParams(window.location.search);
-        const mode = params.get('mode');
-        const type = params.get('type');
-        const roomID = params.get('roomID');
-        const targetUid = params.get('targetUid');
+        async function init() {
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            localVideo.srcObject = localStream;
 
-        window.api = null;
-
-        async function start() {
-            if (mode === 'caller' && type === 'call') {
-                await setDoc(doc(db, "calls", targetUid), { fromName: params.get('myName'), roomID: roomID, status: "pending", time: Date.now() });
-            }
-
-            const options = {
-                roomName: roomID,
-                parentNode: document.querySelector('#jitsi-container'),
-                configOverwrite: { prejoinPageEnabled: false, startWithAudioMuted: false, startWithVideoMuted: (type === 'chat') },
-                interfaceConfigOverwrite: { TOOLBAR_BUTTONS: [] }
-            };
-
-            window.api = new JitsiMeetExternalAPI("meet.jit.si", options);
-
-            window.api.addEventListener('videoConferenceJoined', () => {
-                if (type === 'call') {
-                    document.getElementById('freeTimer').style.display = 'block';
-                    startClock();
-                }
-            });
-        }
-
-        function startClock() {
-            let sec = 300;
-            const timerEl = document.getElementById('freeTimer');
-            const interval = setInterval(() => {
-                sec--;
-                let m = Math.floor(sec/60), s = sec%60;
-                timerEl.innerText = `${m}:${s < 10 ? '0'+s : s} ಫ್ರೀ ಸಮಯ`;
-                if(sec <= 0) {
-                    clearInterval(interval);
-                    document.getElementById('payOverlay').style.display = 'flex';
-                    api.executeCommand('toggleAudio');
-                    api.executeCommand('toggleVideo');
+            // 5 ನಿಮಿಷದ ಟೈಮರ್
+            let timeLeft = 300;
+            setInterval(() => {
+                if(timeLeft > 0) {
+                    timeLeft--;
+                    let m = Math.floor(timeLeft/60), s = timeLeft%60;
+                    document.getElementById('timer').innerText = `${m}:${s < 10 ? '0'+s : s}`;
+                } else {
+                    alert("ಸಮಯ ಮುಗಿದಿದೆ, ಪಾವತಿಸಿ!");
+                    location.href = 'live-user.html';
                 }
             }, 1000);
         }
 
-        window.resumeCall = () => {
-            document.getElementById('payOverlay').style.display = 'none';
-            api.executeCommand('toggleAudio');
-            api.executeCommand('toggleVideo');
-            document.getElementById('freeTimer').innerText = "PREMIUM ACTIVE";
-            document.getElementById('freeTimer').style.color = "#32cd32";
-        };
-
-        window.exitCall = async () => {
-            if (window.api) window.api.dispose();
-            if (targetUid) await deleteDoc(doc(db, "calls", targetUid));
-            window.location.href = "live-user.html";
-        };
-
-        window.onload = start;
+        init();
     </script>
 </body>
 </html>
