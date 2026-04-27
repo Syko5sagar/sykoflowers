@@ -1,6 +1,6 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -13,26 +13,33 @@ const app=initializeApp(firebaseConfig);
 const db=getFirestore(app);
 const auth=getAuth(app);
 
-let uid,callData;
+let uid, callData;
 
-onAuthStateChanged(auth, async user=>{
- if(!user){location.href="index.html";return;}
- uid=user.uid;
+onAuthStateChanged(auth, async (user) => {
+ if(!user){ location.href="index.html"; return; }
+ uid = user.uid;
 
- // ನಿಮ್ಮನ್ನು ನೀವು ಆನ್‌ಲೈನ್ ಎಂದು ತೋರಿಸಿಕೊಳ್ಳಲು (Id ಶೋ ಆಗಲು ಇದು ಮುಖ್ಯ)
- await updateDoc(doc(db, "users", uid), { isOnline: true });
+ // 1. ನೀವು ಲಾಗಿನ್ ಆದ ತಕ್ಷಣ ನಿಮ್ಮನ್ನು ಆನ್‌ಲೈನ್ ಎಂದು ತೋರಿಸಲು (ಇದು ನಿಮ್ಮ ಐಡಿ ಬೇರೆಯವರಿಗೆ ಕಾಣುವಂತೆ ಮಾಡುತ್ತದೆ)
+ try {
+  await updateDoc(doc(db, "users", uid), { 
+    isOnline: true,
+    lastSeen: serverTimestamp() 
+  });
+ } catch(e) {
+  console.log("Status update error", e);
+ }
 
- // USERS LISTENER (ಎಲ್ಲರಿಗೂ ಎಲ್ಲರ ಐಡಿ ಕಾಣುವಂತೆ ಮಾಡಲು)
- onSnapshot(collection(db,"users"), snap=>{
-  let html="", count=0;
-  snap.forEach(d=>{
-   let u=d.data();
-   
-   // u.uid !== uid ಅಂದರೆ ನಮಗೆ ನಮ್ಮ ಐಡಿ ಕಾಣಿಸುವುದಿಲ್ಲ, ಉಳಿದವರದ್ದು ಕಾಣಿಸುತ್ತದೆ. 
-   // ಒಂದು ವೇಳೆ ಎಲ್ಲರಿಗೂ ಕಾಣಿಸಬೇಕೆಂದರೆ ಈ ಕಂಡಿಶನ್ ಪರೀಕ್ಷಿಸಿ.
-   if(u.uid !== uid && u.isOnline){
+ // 2. ಆನ್‌ಲೈನ್ ಬಳಕೆದಾರರ ಪಟ್ಟಿ (ಎಲ್ಲರಿಗೂ ಪರಸ್ಪರ ಐಡಿ ಕಾಣುವಂತೆ ಮಾಡಲಾಗಿದೆ)
+ onSnapshot(collection(db, "users"), (snap) => {
+  let html = "", count = 0;
+  
+  snap.forEach((d) => {
+   let u = d.data();
+
+   // ಇಲ್ಲಿ ಕೇವಲ ನಿಮ್ಮ ಐಡಿ ಹೊರತುಪಡಿಸಿ, ಆನ್‌ಲೈನ್ ಇರುವ ಎಲ್ಲರನ್ನೂ ತೋರಿಸುತ್ತದೆ
+   if(u.uid !== uid && u.isOnline === true) {
     count++;
-    html+=`
+    html += `
     <div class="user">
       <div class="top-section">
         <div class="left">
@@ -53,26 +60,51 @@ onAuthStateChanged(auth, async user=>{
     </div>`;
    }
   });
-  document.getElementById("list").innerHTML=html || "<p style='text-align:center;'>ಯಾರೂ ಆನ್‌ಲೈನ್ ಇಲ್ಲ...</p>";
-  document.getElementById("count").innerText=count+" online";
+
+  document.getElementById("list").innerHTML = html || "<p style='text-align:center; padding:20px;'>ಯಾರೂ ಆನ್‌ಲೈನ್ ಇಲ್ಲ...</p>";
+  document.getElementById("count").innerText = count + " online";
  });
 
  // ಕರೆಯ ಆಲಿಕೆ (Call Listener)
- onSnapshot(doc(db,"calls",uid), snap=>{
+ onSnapshot(doc(db, "calls", uid), (snap) => {
   if(snap.exists()){
-   callData=snap.data();
-   document.getElementById("popup").style.display="block";
-   document.getElementById("caller").innerText="Incoming Call...";
+   callData = snap.data();
+   document.getElementById("popup").style.display = "block";
+   document.getElementById("caller").innerText = "Incoming Call...";
   }
  });
 });
 
-// ವಿಡಿಯೋ ಸ್ಟ್ರಕ್ ಆಗದಂತೆ ಕಾಲ್ ಕನೆಕ್ಷನ್ (connect.html ಗೆ ಹೋಗುವಾಗ)
-window.callUser = async(id)=>{
- let room="room_"+Date.now();
- await setDoc(doc(db,"calls",id),{from:uid, room:room});
- location.href=`connect.html?room=${room}&caller=true`;
+// ಬುಕಿಂಗ್ ಫಂಕ್ಷನ್ (ಯಾವುದನ್ನೂ ಅಳಿಸಿಲ್ಲ)
+window.bookUser = async (targetName, rate, targetUid) => {
+  try {
+    const bookingId = "book_" + Date.now();
+    await setDoc(doc(db, "bookings", bookingId), {
+      bookerName: auth.currentUser.displayName || "User",
+      bookerId: uid,
+      targetName: targetName,
+      targetId: targetUid,
+      amount: rate,
+      time: new Date().toLocaleString(),
+      status: "Confirmed"
+    });
+    alert("Booking Successful for " + targetName);
+  } catch (error) {
+    alert("Error in booking!");
+  }
 };
 
-// ... ಉಳಿದ ಚಾಟ್ ಮತ್ತು ಬುಕಿಂಗ್ ಫಂಕ್ಷನ್ ಹಾಗೆಯೇ ಇರಲಿ
+// ಕಾಲ್ ಫಂಕ್ಷನ್
+window.callUser = async(id) => {
+ let room = "room_" + Date.now();
+ await setDoc(doc(db, "calls", id), { from: uid, room: room });
+ location.href = `connect.html?room=${room}&caller=true`;
+};
+
+window.chatUser = (id, name) => { location.href = `chat.html?id=${id}&name=${name}`; };
+window.accept = () => { location.href = `connect.html?room=${callData.room}`; };
+window.reject = async() => {
+ await deleteDoc(doc(db, "calls", uid));
+ document.getElementById("popup").style.display = "none";
+};
 </script>
