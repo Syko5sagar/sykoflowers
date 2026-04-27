@@ -7,8 +7,7 @@
 body{margin:0;background:black;color:white;text-align:center}
 video{width:45%;border-radius:10px;margin:5px}
 #controls{position:fixed;bottom:20px;width:100%}
-button{padding:10px 20px;margin:5px;border:none;border-radius:10px}
-.end{background:red;color:white}
+button{padding:10px 20px;border:none;border-radius:10px;background:red;color:white}
 </style>
 </head>
 
@@ -20,19 +19,18 @@ button{padding:10px 20px;margin:5px;border:none;border-radius:10px}
 <video id="remote" autoplay playsinline></video>
 
 <div id="controls">
-<button class="end" onclick="endCall()">End Call</button>
+<button onclick="endCall()">End Call</button>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-const firebaseConfig = {
+const app = initializeApp({
  apiKey:"AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
  projectId:"sykolive-846a3"
-};
+});
 
-const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 const params = new URLSearchParams(location.search);
@@ -40,47 +38,50 @@ const room = params.get("room");
 const isCaller = params.get("caller");
 
 const pc = new RTCPeerConnection({
- iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+ iceServers:[{urls:"stun:stun.l.google.com:19302"}]
 });
 
-let localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-document.getElementById("local").srcObject = localStream;
+// 🎥 CAMERA + MIC
+const stream = await navigator.mediaDevices.getUserMedia({video:true,audio:true});
+document.getElementById("local").srcObject = stream;
 
-localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+stream.getTracks().forEach(track=>pc.addTrack(track,stream));
 
-pc.ontrack = e => {
+// 📺 REMOTE VIDEO
+pc.ontrack = e=>{
  document.getElementById("remote").srcObject = e.streams[0];
 };
 
-// 🔥 ICE FIX
-const roomRef = doc(db, "rooms", room);
-const callerCandidates = collection(roomRef, "callerCandidates");
-const calleeCandidates = collection(roomRef, "calleeCandidates");
+// 🔥 FIREBASE SIGNALING
+const roomRef = doc(db,"rooms",room);
+const callerCandidates = collection(roomRef,"callerCandidates");
+const calleeCandidates = collection(roomRef,"calleeCandidates");
 
-pc.onicecandidate = async e => {
- if (e.candidate) {
+// ICE SEND
+pc.onicecandidate = async e=>{
+ if(e.candidate){
   await addDoc(isCaller ? callerCandidates : calleeCandidates, e.candidate.toJSON());
  }
 };
 
 // CALLER
-if (isCaller) {
+if(isCaller){
 
  const offer = await pc.createOffer();
  await pc.setLocalDescription(offer);
 
- await setDoc(roomRef, { offer });
+ await setDoc(roomRef,{offer});
 
- onSnapshot(roomRef, async snap => {
+ onSnapshot(roomRef, async snap=>{
   const data = snap.data();
-  if (data?.answer && !pc.currentRemoteDescription) {
+  if(data?.answer && !pc.currentRemoteDescription){
    await pc.setRemoteDescription(data.answer);
   }
  });
 
- onSnapshot(calleeCandidates, snap => {
-  snap.docChanges().forEach(async change => {
-   if (change.type === "added") {
+ onSnapshot(calleeCandidates,snap=>{
+  snap.docChanges().forEach(async change=>{
+   if(change.type==="added"){
     await pc.addIceCandidate(change.doc.data());
    }
   });
@@ -89,7 +90,7 @@ if (isCaller) {
 }
 
 // RECEIVER
-else {
+else{
 
  const snap = await getDoc(roomRef);
  const data = snap.data();
@@ -99,11 +100,11 @@ else {
  const answer = await pc.createAnswer();
  await pc.setLocalDescription(answer);
 
- await updateDoc(roomRef, { answer });
+ await updateDoc(roomRef,{answer});
 
- onSnapshot(callerCandidates, snap => {
-  snap.docChanges().forEach(async change => {
-   if (change.type === "added") {
+ onSnapshot(callerCandidates,snap=>{
+  snap.docChanges().forEach(async change=>{
+   if(change.type==="added"){
     await pc.addIceCandidate(change.doc.data());
    }
   });
@@ -111,8 +112,9 @@ else {
 
 }
 
-window.endCall = () => {
- location.href = "live.html";
+// END
+window.endCall=()=>{
+ location.href="live.html";
 };
 </script>
 
