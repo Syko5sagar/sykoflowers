@@ -1,21 +1,136 @@
 <!DOCTYPE html>
-<html>
+<html lang="kn">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Live Users</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<style>
+body{
+ background:black;
+ color:white;
+ font-family:sans-serif;
+ margin:0;
+}
+
+/* HEADER */
+.header{
+ position:sticky;
+ top:0;
+ background:#000;
+ padding:15px;
+ text-align:center;
+ font-size:22px;
+ font-weight:bold;
+ border-bottom:1px solid #222;
+}
+
+.sub{
+ font-size:12px;
+ color:#aaa;
+}
+
+/* LIST */
+#list{
+ padding:10px;
+}
+
+/* USER CARD */
+.user{
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ background:#111;
+ padding:12px;
+ margin-bottom:10px;
+ border-radius:15px;
+}
+
+.left{
+ display:flex;
+ align-items:center;
+}
+
+.left img{
+ width:50px;
+ height:50px;
+ border-radius:50%;
+ margin-right:10px;
+ border:2px solid #ff007f;
+}
+
+.name{
+ font-weight:bold;
+}
+
+.age{
+ font-size:12px;
+ color:#aaa;
+}
+
+/* BUTTONS */
+.actions button{
+ border:none;
+ padding:8px 10px;
+ border-radius:10px;
+ margin-left:5px;
+ cursor:pointer;
+}
+
+.call{
+ background:#32cd32;
+ color:black;
+}
+
+.chat{
+ background:#007bff;
+ color:white;
+}
+
+.book{
+ background:orange;
+ color:black;
+}
+
+/* POPUP */
+#popup{
+ display:none;
+ position:fixed;
+ top:40%;
+ left:50%;
+ transform:translate(-50%,-50%);
+ background:#111;
+ padding:20px;
+ border-radius:15px;
+ text-align:center;
+ border:1px solid #333;
+}
+
+#popup button{
+ margin:5px;
+ padding:10px;
+ border:none;
+ border-radius:10px;
+}
+</style>
 </head>
 
-<body style="background:black;color:white">
+<body>
 
-<h2>RENT GIRLS & BOYS</h2>
-<div id="count"></div>
+<div class="header">
+ RENT GIRLS & BOYS
+ <div id="count" class="sub"></div>
+</div>
+
 <div id="list"></div>
 
 <!-- CALL POPUP -->
-<div id="popup" style="display:none;background:#111;padding:20px">
+<div id="popup">
 <h3 id="caller"></h3>
-<button onclick="accept()">Accept</button>
-<button onclick="reject()">Reject</button>
+<button onclick="accept()" style="background:#32cd32">Accept</button>
+<button onclick="reject()" style="background:red;color:white">Reject</button>
 </div>
 
 <script type="module">
@@ -39,7 +154,7 @@ onAuthStateChanged(auth,user=>{
  if(!user){location.href="index.html";return;}
  uid=user.uid;
 
- // USERS LIST
+ // USERS
  onSnapshot(collection(db,"users"),snap=>{
   let html="",count=0;
 
@@ -50,10 +165,20 @@ onAuthStateChanged(auth,user=>{
     if(u.isOnline) count++;
 
     html+=`
-    <div>
-      <img src="${u.profilePic}" width="50">
-      ${u.name}
-      <button onclick="callUser('${u.uid}')">📹</button>
+    <div class="user">
+      <div class="left">
+        <img src="${u.profilePic}">
+        <div>
+          <div class="name">${u.name}</div>
+          <div class="age">${u.age} yrs • ₹${u.rate}</div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="chat" onclick="chatUser('${u.uid}','${u.name}')"><i class="fa-solid fa-message"></i></button>
+        <button class="call" onclick="callUser('${u.uid}')"><i class="fa-solid fa-video"></i></button>
+        <button class="book" onclick="bookUser('${u.name}','${u.rate}')">₹</button>
+      </div>
     </div>`;
    }
   });
@@ -62,7 +187,7 @@ onAuthStateChanged(auth,user=>{
   document.getElementById("count").innerText=count+" online";
  });
 
- // 📞 INCOMING CALL LISTENER
+ // CALL LISTENER
  onSnapshot(doc(db,"calls",uid),snap=>{
   if(snap.exists()){
    callData=snap.data();
@@ -73,7 +198,7 @@ onAuthStateChanged(auth,user=>{
 
 });
 
-// 📞 CALL USER
+// CALL
 window.callUser = async(id)=>{
  let room="room_"+Date.now();
 
@@ -85,12 +210,22 @@ window.callUser = async(id)=>{
  location.href=`connect.html?room=${room}&caller=true`;
 };
 
-// ✅ ACCEPT
+// CHAT
+window.chatUser=(id,name)=>{
+ location.href=`chat.html?id=${id}&name=${name}`;
+};
+
+// BOOK
+window.bookUser=(name,rate)=>{
+ alert(name+" booking ₹"+rate);
+};
+
+// ACCEPT
 window.accept=()=>{
  location.href=`connect.html?room=${callData.room}`;
 };
 
-// ❌ REJECT
+// REJECT
 window.reject=async()=>{
  await deleteDoc(doc(db,"calls",uid));
  document.getElementById("popup").style.display="none";
