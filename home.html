@@ -10,14 +10,14 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
         body { background: #000; color: white; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
         .upload-container { width: 100%; max-width: 400px; background: #111; padding: 30px; border-radius: 25px; border: 2px solid #32cd32; text-align: center; }
-        h2 { color: #ff0000; margin-bottom: 20px; text-transform: uppercase; }
-        .photo-upload { width: 100px; height: 100px; background: #222; border: 2px dashed #ff0000; border-radius: 50%; margin: 0 auto 20px; display: flex; justify-content: center; align-items: center; cursor: pointer; overflow: hidden; position: relative; }
+        h2 { color: #ff0000; margin-bottom: 20px; text-transform: uppercase; font-size: 18px; }
+        .photo-upload { width: 110px; height: 110px; background: #222; border: 2px dashed #ff0000; border-radius: 50%; margin: 0 auto 20px; display: flex; justify-content: center; align-items: center; cursor: pointer; overflow: hidden; position: relative; }
         .photo-upload img { width: 100%; height: 100%; object-fit: cover; position: absolute; }
-        .photo-upload i { font-size: 30px; color: #32cd32; }
+        .photo-upload i { font-size: 35px; color: #32cd32; }
         .input-group { margin-bottom: 15px; text-align: left; }
-        label { display: block; color: #32cd32; font-size: 14px; margin-bottom: 5px; font-weight: bold; }
+        label { display: block; color: #32cd32; font-size: 13px; margin-bottom: 5px; font-weight: bold; }
         input { width: 100%; padding: 12px; background: #000; border: 1px solid #ff0000; border-radius: 10px; color: white; outline: none; }
-        .save-btn { width: 100%; padding: 15px; background: #32cd32; color: #000; border: none; border-radius: 12px; font-weight: 800; font-size: 18px; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+        .save-btn { width: 100%; padding: 15px; background: #32cd32; color: #000; border: none; border-radius: 12px; font-weight: 800; font-size: 18px; cursor: pointer; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -31,16 +31,16 @@
         <input type="file" id="fileInput" style="display: none;" accept="image/*">
 
         <div class="input-group">
-            <label>ಹೆಸರು:</label>
-            <input type="text" id="userName" placeholder="ನಿಮ್ಮ ಹೆಸರು">
+            <label>ನಿಮ್ಮ ಹೆಸರು:</label>
+            <input type="text" id="userName" placeholder="ಹೆಸರು ಬರೆಯಿರಿ">
         </div>
         <div class="input-group">
             <label>ವಯಸ್ಸು:</label>
-            <input type="number" id="userAge" placeholder="ನಿಮ್ಮ ವಯಸ್ಸು">
+            <input type="number" id="userAge" placeholder="ವಯಸ್ಸು ಹಾಕಿ">
         </div>
         <div class="input-group">
-            <label>ದಿನದ ಬಾಡಿಗೆ (Amount ₹):</label>
-            <input type="number" id="userRate" placeholder="ಉದಾ: 500">
+            <label>ಅಮೌಂಟ್ (₹):</label>
+            <input type="number" id="userRate" placeholder="ದಿನದ ಮೊತ್ತ">
         </div>
         <button class="save-btn" id="saveBtn">ಸೇವ್ ಮಾಡಿ</button>
     </div>
@@ -50,6 +50,7 @@
         import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
+        // ನಿಮ್ಮ Firebase Config
         const firebaseConfig = { 
             apiKey: "AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ", 
             authDomain: "sykolive-846a3.firebaseapp.com", 
@@ -59,16 +60,16 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        let profilePicData = "";
+        let base64Pic = "";
 
-        // ಫೋಟೋ ಆರಿಸಿಕೊಂಡಾಗ
+        // ಫೋಟೋ ಪ್ರಿವ್ಯೂ ತೋರಿಸಲು
         document.getElementById('fileInput').addEventListener('change', function() {
             const file = this.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    profilePicData = e.target.result;
-                    document.getElementById('previewImg').src = profilePicData;
+                    base64Pic = e.target.result;
+                    document.getElementById('previewImg').src = base64Pic;
                     document.getElementById('previewImg').style.display = 'block';
                     document.getElementById('camIcon').style.display = 'none';
                 };
@@ -76,28 +77,35 @@
             }
         });
 
-        // ಸೇವ್ ಬಟನ್ ಒತ್ತಿದಾಗ
+        // ಸೇವ್ ಬಟನ್ ಮತ್ತು ಪೇಜ್ ರಿಡೈರೆಕ್ಟ್
         document.getElementById('saveBtn').addEventListener('click', async () => {
             const user = auth.currentUser;
             const name = document.getElementById('userName').value;
             const age = document.getElementById('userAge').value;
             const rate = document.getElementById('userRate').value;
 
-            if (user && name && age && rate && profilePicData) {
+            if (user && name && age && rate && base64Pic) {
                 try {
+                    // ಡೇಟಾ ಸೇವ್ ಮಾಡಲಾಗುತ್ತಿದೆ
                     await setDoc(doc(db, "users", user.uid), {
                         uid: user.uid,
                         name: name,
                         age: age,
                         rate: rate,
-                        profilePic: profilePicData,
-                        status: "online"
+                        profilePic: base64Pic
                     });
-                    // ಸೇವ್ ಆದ ಕೂಡಲೇ ಲೈವ್ ಯೂಸರ್ಸ್ ಪೇಜ್‌ಗೆ ಹೋಗಲು:
+
+                    alert("ಯಶಸ್ವಿಯಾಗಿ ಸೇವ್ ಆಗಿದೆ!");
+                    
+                    // ಇಲ್ಲಿ ಗಮನಿಸಿ: GitHub ನಲ್ಲಿ ನಿಮ್ಮ ಫೈಲ್ ಹೆಸರು ಹೇಗಿದೆಯೋ ಹಾಗೆಯೇ ಇರಲಿ
+                    // ಒಂದು ವೇಳೆ ಫೋಲ್ಡರ್ ಒಳಗೆ ಇದ್ದರೆ "sykoflowers/live_users.html" ಎಂದು ಹಾಕಬೇಕಾಗಬಹುದು
                     window.location.href = "live_users.html"; 
-                } catch (err) { alert("ದೋಷ: " + err.message); }
+
+                } catch (err) {
+                    alert("Error: " + err.message);
+                }
             } else {
-                alert("ದಯವಿಟ್ಟು ಎಲ್ಲ ವಿವರಗಳನ್ನು ಮತ್ತು ಫೋಟೋವನ್ನು ಭರ್ತಿ ಮಾಡಿ!");
+                alert("ದಯವಿಟ್ಟು ಫೋಟೋ ಮತ್ತು ವಿವರ ತುಂಬಿರಿ!");
             }
         });
     </script>
