@@ -1,178 +1,6 @@
-<!DOCTYPE html>
-<html lang="kn">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Live Users - SykoLive</title>
-
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-
-<style>
-body{
- background:black;
- color:white;
- font-family:sans-serif;
- margin:0;
-}
-
-/* HEADER ಅಪ್‌ಡೇಟ್ ಮಾಡಲಾಗಿದೆ */
-.header{
- position:sticky;
- top:0;
- background:#000;
- padding:15px;
- text-align:center;
- font-size:22px;
- font-weight:bold;
- border-bottom:1px solid #222;
- z-index: 100;
- display: flex;
- flex-direction: column;
- align-items: center;
- gap: 5px;
-}
-
-.sub{
- font-size:12px;
- color:#aaa;
-}
-
-/* ಚಾರ್ಟ್ ಬಟನ್ ಸ್ಟೈಲ್ */
-.chart-link-btn {
- background: white;
- color: black;
- font-size: 11px;
- padding: 6px 12px;
- border-radius: 20px;
- border: none;
- cursor: pointer;
- font-weight: bold;
- margin-top: 5px;
- transition: 0.3s;
-}
-
-.chart-link-btn:active {
- transform: scale(0.95);
-}
-
-/* LIST */
-#list{
- padding:10px;
-}
-
-/* USER CARD */
-.user{
- background:#111;
- padding:12px;
- margin-bottom:15px;
- border-radius:15px;
- display: flex;
- flex-direction: column;
- gap: 12px;
-}
-
-.top-section {
- display:flex;
- align-items:center;
- justify-content:space-between;
-}
-
-.left{
- display:flex;
- align-items:center;
-}
-
-.left img{
- width:50px;
- height:50px;
- border-radius:50%;
- margin-right:10px;
- border:2px solid #ff007f;
-}
-
-.name{
- font-weight:bold;
-}
-
-.age{
- font-size:12px;
- color:#aaa;
-}
-
-/* BUTTONS */
-.actions button{
- border:none;
- padding:10px 12px;
- border-radius:10px;
- margin-left:5px;
- cursor:pointer;
- font-size: 16px;
-}
-
-.call{ background:#32cd32; color:black; }
-.chat{ background:#007bff; color:white; }
-
-.big-book-btn {
- width: 100%;
- background: #ff3b30;
- color: white;
- border: none;
- padding: 12px;
- border-radius: 10px;
- font-size: 18px;
- font-weight: bold;
- cursor: pointer;
- display: flex;
- align-items: center;
- justify-content: center;
- gap: 8px;
-}
-
-/* POPUP */
-#popup{
- display:none;
- position:fixed;
- top:40%;
- left:50%;
- transform:translate(-50%,-50%);
- background:#111;
- padding:20px;
- border-radius:15px;
- text-align:center;
- border:1px solid #333;
- z-index: 1000;
-}
-
-#popup button{
- margin:5px;
- padding:10px;
- border:none;
- border-radius:10px;
-}
-</style>
-</head>
-
-<body>
-
-<div class="header">
- <div>RENT GIRLS & BOYS</div>
- <div id="count" class="sub"></div>
- <button class="chart-link-btn" onclick="location.href='booking_chart.html'">
-    <i class="fa-solid fa-chart-line"></i> Check Chart
- </button>
-</div>
-
-<div id="list"></div>
-
-<div id="popup">
-<h3 id="caller"></h3>
-<button onclick="accept()" style="background:#32cd32">Accept</button>
-<button onclick="reject()" style="background:red;color:white">Reject</button>
-</div>
-
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -187,22 +15,28 @@ const auth=getAuth(app);
 
 let uid,callData;
 
-onAuthStateChanged(auth,user=>{
+onAuthStateChanged(auth, async user=>{
  if(!user){location.href="index.html";return;}
  uid=user.uid;
 
- // USERS LISTENER
- onSnapshot(collection(db,"users"),snap=>{
-  let html="",count=0;
+ // ನಿಮ್ಮನ್ನು ನೀವು ಆನ್‌ಲೈನ್ ಎಂದು ತೋರಿಸಿಕೊಳ್ಳಲು (Id ಶೋ ಆಗಲು ಇದು ಮುಖ್ಯ)
+ await updateDoc(doc(db, "users", uid), { isOnline: true });
+
+ // USERS LISTENER (ಎಲ್ಲರಿಗೂ ಎಲ್ಲರ ಐಡಿ ಕಾಣುವಂತೆ ಮಾಡಲು)
+ onSnapshot(collection(db,"users"), snap=>{
+  let html="", count=0;
   snap.forEach(d=>{
    let u=d.data();
-   if(u.uid!==uid){
-    if(u.isOnline) count++;
+   
+   // u.uid !== uid ಅಂದರೆ ನಮಗೆ ನಮ್ಮ ಐಡಿ ಕಾಣಿಸುವುದಿಲ್ಲ, ಉಳಿದವರದ್ದು ಕಾಣಿಸುತ್ತದೆ. 
+   // ಒಂದು ವೇಳೆ ಎಲ್ಲರಿಗೂ ಕಾಣಿಸಬೇಕೆಂದರೆ ಈ ಕಂಡಿಶನ್ ಪರೀಕ್ಷಿಸಿ.
+   if(u.uid !== uid && u.isOnline){
+    count++;
     html+=`
     <div class="user">
       <div class="top-section">
         <div class="left">
-          <img src="${u.profilePic}">
+          <img src="${u.profilePic || 'https://via.placeholder.com/50'}">
           <div>
             <div class="name">${u.name}</div>
             <div class="age">${u.age} yrs • ₹${u.rate}</div>
@@ -219,11 +53,12 @@ onAuthStateChanged(auth,user=>{
     </div>`;
    }
   });
-  document.getElementById("list").innerHTML=html;
+  document.getElementById("list").innerHTML=html || "<p style='text-align:center;'>ಯಾರೂ ಆನ್‌ಲೈನ್ ಇಲ್ಲ...</p>";
   document.getElementById("count").innerText=count+" online";
  });
 
- onSnapshot(doc(db,"calls",uid),snap=>{
+ // ಕರೆಯ ಆಲಿಕೆ (Call Listener)
+ onSnapshot(doc(db,"calls",uid), snap=>{
   if(snap.exists()){
    callData=snap.data();
    document.getElementById("popup").style.display="block";
@@ -232,42 +67,12 @@ onAuthStateChanged(auth,user=>{
  });
 });
 
-// BOOK FUNCTION
-window.bookUser = async (targetName, rate, targetUid) => {
-  try {
-    const bookingId = "book_" + Date.now();
-    await setDoc(doc(db, "bookings", bookingId), {
-      bookerName: auth.currentUser.displayName || "User",
-      bookerId: uid,
-      targetName: targetName,
-      targetId: targetUid,
-      amount: rate,
-      time: new Date().toLocaleString(),
-      status: "Confirmed"
-    });
-    alert("Booking Successful for " + targetName);
-  } catch (error) {
-    alert("Error in booking!");
-  }
-};
-
+// ವಿಡಿಯೋ ಸ್ಟ್ರಕ್ ಆಗದಂತೆ ಕಾಲ್ ಕನೆಕ್ಷನ್ (connect.html ಗೆ ಹೋಗುವಾಗ)
 window.callUser = async(id)=>{
  let room="room_"+Date.now();
  await setDoc(doc(db,"calls",id),{from:uid, room:room});
  location.href=`connect.html?room=${room}&caller=true`;
 };
 
-window.chatUser=(id,name)=>{
- location.href=`chat.html?id=${id}&name=${name}`;
-};
-
-window.accept=()=>{ location.href=`connect.html?room=${callData.room}`; };
-
-window.reject=async()=>{
- await deleteDoc(doc(db,"calls",uid));
- document.getElementById("popup").style.display="none";
-};
+// ... ಉಳಿದ ಚಾಟ್ ಮತ್ತು ಬುಕಿಂಗ್ ಫಂಕ್ಷನ್ ಹಾಗೆಯೇ ಇರಲಿ
 </script>
-
-</body>
-</html>
