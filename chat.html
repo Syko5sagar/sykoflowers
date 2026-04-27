@@ -1,36 +1,72 @@
 <!DOCTYPE html>
 <html>
-<body style="background:black;color:white">
+<head>
+<meta charset="UTF-8">
+<title>Chat</title>
+<style>
+body{background:#000;color:white;font-family:sans-serif;margin:0}
+.header{padding:15px;background:#111;text-align:center}
+#messages{height:70vh;overflow:auto;padding:10px}
+.msg{margin:5px;padding:10px;border-radius:10px;width:fit-content}
+.me{background:#32cd32;color:black;margin-left:auto}
+.other{background:#222}
+.input{position:fixed;bottom:0;width:100%;display:flex}
+input{flex:1;padding:15px;border:none}
+button{padding:15px;background:#32cd32;border:none}
+</style>
+</head>
 
-<div id="chat"></div>
-<input id="msg"><button onclick="send()">Send</button>
+<body>
+
+<div class="header">Chat</div>
+<div id="messages"></div>
+
+<div class="input">
+<input id="msg" placeholder="Type...">
+<button onclick="send()">Send</button>
+</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-const app = initializeApp({ apiKey:"AIzaSy...", projectId:"sykolive-846a3"});
+const app=initializeApp({
+ apiKey:"AIzaSy...",
+ authDomain:"sykolive-846a3.firebaseapp.com",
+ projectId:"sykolive-846a3"
+});
+
 const db=getFirestore(app);
+const auth=getAuth(app);
 
 const params=new URLSearchParams(location.search);
-const chatId=params.get("id");
+const id=params.get("id");
 
-onSnapshot(collection(db,"chats"),snap=>{
+const chatId = auth.currentUser.uid < id 
+ ? auth.currentUser.uid+"_"+id 
+ : id+"_"+auth.currentUser.uid;
+
+const q=query(collection(db,"chats",chatId,"messages"),orderBy("time"));
+
+onSnapshot(q,snap=>{
  let html="";
  snap.forEach(d=>{
   let m=d.data();
-  if(m.chatId===chatId){
-   html+=`<div>${m.text}</div>`;
-  }
+  html+=`<div class="msg ${m.uid==auth.currentUser.uid?'me':'other'}">${m.text}</div>`;
  });
- chat.innerHTML=html;
+ messages.innerHTML=html;
 });
 
-window.send=()=>{
- addDoc(collection(db,"chats"),{
-  chatId:chatId,
-  text:msg.value
+window.send=async()=>{
+ if(!msg.value) return;
+
+ await addDoc(collection(db,"chats",chatId,"messages"),{
+  text:msg.value,
+  uid:auth.currentUser.uid,
+  time:Date.now()
  });
+
  msg.value="";
 };
 </script>
