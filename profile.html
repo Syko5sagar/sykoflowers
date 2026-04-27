@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<body style="background:black;color:white;text-align:center">
+
+<h2>Profile Setup</h2>
+<input id="name" placeholder="Name"><br><br>
+<input id="age" placeholder="Age"><br><br>
+<input id="rate" placeholder="Rate"><br><br>
+<input type="file" id="img"><br><br>
+
+<button onclick="save()">Save</button>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
+  authDomain: "sykolive-846a3.firebaseapp.com",
+  projectId: "sykolive-846a3"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+let img64 = "";
+
+document.getElementById("img").onchange = e=>{
+  const r = new FileReader();
+  r.onload = ()=> img64 = r.result;
+  r.readAsDataURL(e.target.files[0]);
+};
+
+window.save = async ()=>{
+  const user = auth.currentUser;
+
+  await setDoc(doc(db,"users",user.uid),{
+    uid:user.uid,
+    name:document.getElementById("name").value,
+    age:document.getElementById("age").value,
+    rate:document.getElementById("rate").value,
+    profilePic:img64,
+    isOnline:true
+  });
+
+  location.href="live-user.html";
+};
+</script>
+
+</body>
+</html>
