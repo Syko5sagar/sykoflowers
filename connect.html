@@ -5,94 +5,113 @@ import {
   onSnapshot, collection, addDoc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-const app = initializeApp({
-  apiKey:"AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
-  projectId:"sykolive-846a3"
-});
+// 1. ಫೈರ್‌ಬೇಸ್ ಕಾನ್ಫಿಗರೇಶನ್
+const firebaseConfig = {
+  apiKey: "AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
+  projectId: "sykolive-846a3"
+};
 
+const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// 2. ಯುಆರ್‌ಎಲ್ ಪ್ಯಾರಾಮೀಟರ್‌ಗಳು
 const params = new URLSearchParams(location.search);
 const room = params.get("room");
-const caller = params.get("caller");
+const caller = params.get("caller"); // URLನಲ್ಲಿ caller=true ಇರಬೇಕು
 
+if (!room) {
+    alert("Please provide a room ID in the URL (?room=123)");
+}
+
+// 3. WebRTC ಸೆಟಪ್
 const pc = new RTCPeerConnection({
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
 });
 
-// VIDEO ELEMENTS
 const localVideo = document.getElementById("local");
 const remoteVideo = document.getElementById("remote");
 
-// CAMERA + MIC
-const stream = await navigator.mediaDevices.getUserMedia({
-  video: true,
-  audio: true
-});
+async function init() {
+    // 4. ಕ್ಯಾಮೆರಾ ಮತ್ತು ಮೈಕ್ರೋಫೋನ್ ಆನ್ ಮಾಡಿ
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: true
+    });
 
-localVideo.srcObject = stream;
-stream.getTracks().forEach(track => pc.addTrack(track, stream));
+    localVideo.srcObject = stream;
+    stream.getTracks().forEach(track => pc.addTrack(track, stream));
 
-// REMOTE STREAM
-pc.ontrack = e => {
-  remoteVideo.srcObject = e.streams[0];
-};
+    // ಬೇರೆಯವರ ವಿಡಿಯೋ ಸ್ವೀಕರಿಸಿ
+    pc.ontrack = e => {
+      if (remoteVideo.srcObject !== e.streams[0]) {
+        remoteVideo.srcObject = e.streams[0];
+      }
+    };
 
-// 🔥 ICE CANDIDATES SEND
-const roomRef = doc(db, "rooms", room);
-const callerCandidates = collection(roomRef, "callerCandidates");
-const calleeCandidates = collection(roomRef, "calleeCandidates");
+    // 5. ಫೈರ್‌ಬೇಸ್ ರೆಫರೆನ್ಸ್
+    const roomRef = doc(db, "rooms", room);
+    const callerCandidates = collection(roomRef, "callerCandidates");
+    const calleeCandidates = collection(roomRef, "calleeCandidates");
 
-pc.onicecandidate = async event => {
-  if (event.candidate) {
+    // ICE Candidates ಕಳುಹಿಸುವುದು
+    pc.onicecandidate = event => {
+      if (event.candidate) {
+        const candidates = caller ? callerCandidates : calleeCandidates;
+        addDoc(candidates, event.candidate.toJSON());
+      }
+    };
+
+    // 6. ಕಾಲಿಂಗ್ ಲಾಜಿಕ್
     if (caller) {
-      await addDoc(callerCandidates, event.candidate.toJSON());
+      // CALLER (ಕರೆ ಮಾಡುವವರು)
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      await setDoc(roomRef, { offer: { type: offer.type, sdp: offer.sdp } });
+
+      // Answer ಗಾಗಿ ಕಾಯುವುದು
+      onSnapshot(roomRef, async snap => {
+        const data = snap.data();
+        if (data?.answer && !pc.currentRemoteDescription) {
+          const answer = new RTCSessionDescription(data.answer);
+          await pc.setRemoteDescription(answer);
+        }
+      });
+
+      // Callee ಕಡೆಯಿಂದ ಬರುವ ICE Candidates ಸೇರಿಸುವುದು
+      onSnapshot(calleeCandidates, snap => {
+        snap.docChanges().forEach(change => {
+          if (change.type === "added") {
+            pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
+          }
+        });
+      });
+
     } else {
-      await addDoc(calleeCandidates, event.candidate.toJSON());
+      // CALLEE (ಕರೆ ಸ್ವೀಕರಿಸುವವರು)
+      onSnapshot(roomRef, async snap => {
+        const data = snap.data();
+        if (data?.offer && !pc.currentRemoteDescription) {
+          const offer = new RTCSessionDescription(data.offer);
+          await pc.setRemoteDescription(offer);
+
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          await updateDoc(roomRef, { answer: { type: answer.type, sdp: answer.sdp } });
+        }
+      });
+
+      // Caller ಕಡೆಯಿಂದ ಬರುವ ICE Candidates ಸೇರಿಸುವುದು
+      onSnapshot(callerCandidates, snap => {
+        snap.docChanges().forEach(change => {
+          if (change.type === "added") {
+            pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
+          }
+        });
+      });
     }
-  }
-};
-
-// CALLER
-if (caller) {
-  const offer = await pc.createOffer();
-  await pc.setLocalDescription(offer);
-
-  await setDoc(roomRef, { offer });
-
-  onSnapshot(roomRef, async snap => {
-    const data = snap.data();
-    if (data?.answer && !pc.currentRemoteDescription) {
-      await pc.setRemoteDescription(data.answer);
-    }
-  });
-
-  // GET CALLEE ICE
-  onSnapshot(calleeCandidates, snap => {
-    snap.docChanges().forEach(change => {
-      if (change.type === "added") {
-        pc.addIceCandidate(change.doc.data());
-      }
-    });
-  });
-
-} else {
-  const roomData = (await getDoc(roomRef)).data();
-
-  await pc.setRemoteDescription(roomData.offer);
-
-  const answer = await pc.createAnswer();
-  await pc.setLocalDescription(answer);
-
-  await updateDoc(roomRef, { answer });
-
-  // GET CALLER ICE
-  onSnapshot(callerCandidates, snap => {
-    snap.docChanges().forEach(change => {
-      if (change.type === "added") {
-        pc.addIceCandidate(change.doc.data());
-      }
-    });
-  });
 }
+
+// ರನ್ ಮಾಡಿ
+init().catch(err => console.error("Error initializing call:", err));
 </script>
