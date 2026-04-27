@@ -1,62 +1,124 @@
 <!DOCTYPE html>
 <html>
-<body style="background:black;color:white">
+<head>
+<meta charset="UTF-8">
+<title>Live Users</title>
+<style>
+body{background:#000;color:white;font-family:sans-serif;margin:0}
+.header{padding:15px;text-align:center;font-size:22px;color:#32cd32;font-weight:bold}
+.sub{font-size:12px;color:#aaa}
 
-<h2>Users</h2>
+.user{
+ display:flex;justify-content:space-between;
+ background:#111;margin:10px;padding:12px;border-radius:15px;
+ align-items:center;
+}
+.user img{width:50px;height:50px;border-radius:50%}
+
+.actions button{
+ margin-left:5px;padding:8px;border:none;border-radius:10px;
+}
+.chat{background:#007bff;color:white}
+.call{background:#32cd32;color:black}
+.book{background:orange;color:black}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+ RENT GIRLS & BOYS
+ <div id="count" class="sub"></div>
+</div>
+
 <div id="list"></div>
+
+<!-- CALL POPUP -->
+<div id="popup" style="display:none;position:fixed;top:40%;left:20%;background:#111;padding:20px">
+<h3 id="caller"></h3>
+<button onclick="accept()">Accept</button>
+<button onclick="reject()">Reject</button>
+</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, onSnapshot, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-const firebaseConfig = {
- apiKey:"AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
+const app = initializeApp({
+ apiKey:"AIzaSy...",
  authDomain:"sykolive-846a3.firebaseapp.com",
  projectId:"sykolive-846a3"
-};
+});
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
+const db=getFirestore(app);
+const auth=getAuth(app);
 
-let uid;
+let uid,callData;
 
-auth.onAuthStateChanged(u=>{
+onAuthStateChanged(auth,u=>{
+ if(!u){location.href="index.html";return;}
  uid=u.uid;
 
  onSnapshot(collection(db,"users"),snap=>{
-  let html="";
+  let html="",count=0;
+
   snap.forEach(d=>{
-   const x=d.data();
-   if(x.uid!=uid){
+   let x=d.data();
+   if(x.uid!==uid){
+    if(x.isOnline) count++;
+
     html+=`
-    <div>
-      <img src="${x.profilePic}" width=50>
-      ${x.name} ₹${x.rate}
-      <button onclick="chat('${x.uid}')">Chat</button>
-      <button onclick="call('${x.uid}')">Call</button>
-      <button onclick="book('${x.uid}')">Book</button>
+    <div class="user">
+      <div>
+        <img src="${x.profilePic}">
+        ${x.name} (${x.age})
+      </div>
+      <div class="actions">
+        <button class="chat" onclick="chat('${x.uid}','${x.name}')">💬</button>
+        <button class="call" onclick="call('${x.uid}')">📹</button>
+        <button class="book" onclick="book('${x.uid}','${x.rate}')">₹</button>
+      </div>
     </div>`;
    }
   });
-  document.getElementById("list").innerHTML=html;
+
+  list.innerHTML=html;
+  countDiv.innerText=count+" online";
  });
+
+ // CALL LISTENER
+ onSnapshot(doc(db,"calls",uid),snap=>{
+  if(snap.exists()){
+   callData=snap.data();
+   popup.style.display="block";
+   caller.innerText="Call from "+callData.from;
+  }
+ });
+
 });
 
-window.chat=(id)=>{
- location.href=`chat.html?chatID=${uid}_${id}`;
+window.chat=(id,name)=>{
+ location.href=`chat.html?id=${id}&name=${name}`;
 };
 
 window.call=async(id)=>{
- const room="R"+Math.random();
+ let room="room_"+Math.random();
  await setDoc(doc(db,"calls",id),{from:uid,room});
- location.href=`connect.html?room=${room}&mode=caller`;
+ location.href=`connect.html?room=${room}&caller=true`;
 };
 
-window.book=async(id)=>{
- await setDoc(doc(db,"bookings",uid+"_"+id),{from:uid,to:id});
- alert("Booked");
+window.book=async(id,rate)=>{
+ alert("Booking ₹"+rate);
+};
+
+window.accept=()=>{
+ location.href=`connect.html?room=${callData.room}`;
+};
+
+window.reject=async()=>{
+ await deleteDoc(doc(db,"calls",uid));
+ popup.style.display="none";
 };
 </script>
 
