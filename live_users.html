@@ -3,31 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RENT BF - Live</title>
+    <title>RENT BF - Live Users</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
         body { background: #000; color: white; padding: 10px; }
+        
+        /* Header & Logo */
         .header { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 2px solid #32cd32; position: sticky; top: 0; background: #000; z-index: 100; }
-        .logo-area h2 { color: #32cd32; font-weight: 800; }
+        .logo-area h2 { color: #32cd32; font-weight: 800; letter-spacing: 1px; }
         .online-status { font-size: 10px; color: #32cd32; display: flex; align-items: center; gap: 5px; }
         .online-dot { width: 8px; height: 8px; background: #32cd32; border-radius: 50%; animation: blink 1.5s infinite; }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-        .my-profile-img { width: 35px; height: 35px; border-radius: 50%; border: 2px solid #32cd32; }
-        .tabs { display: flex; justify-content: space-around; margin: 15px 0; background: #111; border-radius: 15px; padding: 5px; }
-        .tab { padding: 10px 20px; cursor: pointer; border-radius: 12px; font-size: 13px; color: #888; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        
+        .my-profile-img { width: 35px; height: 35px; border-radius: 50%; border: 2px solid #32cd32; object-fit: cover; }
+
+        /* Tabs */
+        .tabs { display: flex; justify-content: space-around; margin: 15px 0; background: #111; border-radius: 15px; padding: 5px; border: 1px solid #222; }
+        .tab { padding: 10px 20px; cursor: pointer; border-radius: 12px; font-size: 13px; color: #888; transition: 0.3s; }
         .tab.active { background: #32cd32; color: #000; font-weight: bold; }
+
+        /* User Card */
         .section { display: none; }
         .section.active { display: block; }
-        .user-card { background: #111; margin-bottom: 12px; padding: 15px; border-radius: 20px; display: flex; align-items: center; border: 1px solid #222; }
-        .user-card img { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid #32cd32; margin-right: 15px; }
+        .user-card { background: #111; margin-bottom: 12px; padding: 15px; border-radius: 20px; display: flex; align-items: center; border: 1px solid #222; transition: 0.2s; }
+        .user-card img { width: 65px; height: 65px; border-radius: 50%; object-fit: cover; border: 2px solid #ff0000; margin-right: 15px; }
         .user-info { flex: 1; }
+        .user-info h3 { font-size: 15px; color: #fff; }
+        .user-info p { font-size: 11px; color: #32cd32; font-weight: 600; }
+
+        /* Buttons */
         .btn-group { display: flex; gap: 8px; }
-        .btn { border: none; width: 38px; height: 38px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .btn { border: none; width: 40px; height: 40px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: 0.2s; }
+        .btn:active { transform: scale(0.9); }
         .call-btn { background: #32cd32; color: #000; }
         .chat-btn { background: #007bff; color: #fff; }
-        .book-btn { background: #ff0000; color: #fff; width: auto; padding: 0 12px; font-size: 11px; font-weight: bold; }
+        .book-btn { background: #ff0000; color: #fff; width: auto; padding: 0 15px; font-size: 12px; font-weight: bold; }
+
+        .badge { background: #ff0000; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 10px; margin-left: 5px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -35,25 +49,39 @@
     <div class="header">
         <div class="logo-area">
             <h2>RENT BF</h2>
-            <div class="online-status"><span class="online-dot"></span> <span id="activeCount">0</span> ಲೈವ್ ಇದ್ದಾರೆ</div>
+            <div class="online-status">
+                <span class="online-dot"></span> <span id="activeCount">0</span> ಲೈವ್ ಇದ್ದಾರೆ
+            </div>
         </div>
         <img src="https://via.placeholder.com/35" class="my-profile-img" id="myTopImg">
     </div>
 
     <div class="tabs">
         <div class="tab active" onclick="switchTab('users')">ಯೂಸರ್ಸ್ ಲಿಸ್ಟ್</div>
-        <div class="tab" onclick="switchTab('bookings')">ಬುಕ್ಕಿಂಗ್ಸ್ <span id="bookingBadge" style="display:none; color:red;">●</span></div>
+        <div class="tab" onclick="switchTab('bookings')">ನನ್ನ ಬುಕ್ಕಿಂಗ್ಸ್ <span id="bookingBadge" class="badge" style="display:none;">0</span></div>
     </div>
 
-    <div id="usersSection" class="section active"><div id="userList"></div></div>
-    <div id="bookingsSection" class="section"><div id="bookedByMeList"></div></div>
+    <div id="usersSection" class="section active">
+        <div id="userList"></div>
+    </div>
+
+    <div id="bookingsSection" class="section">
+        <h4 style="padding: 10px; color: #32cd32; font-size: 14px;">ನಿಮ್ಮನ್ನು ಬುಕ್ ಮಾಡಿರುವ ಗ್ರಾಹಕರು:</h4>
+        <div id="bookedByMeList"></div>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, doc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, query, where, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-        const firebaseConfig = { apiKey: "AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ", authDomain: "sykolive-846a3.firebaseapp.com", projectId: "sykolive-846a3" };
+        // ನಿಮ್ಮ Firebase ಕಾನ್ಫಿಗರೇಶನ್
+        const firebaseConfig = { 
+            apiKey: "AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ", 
+            authDomain: "sykolive-846a3.firebaseapp.com", 
+            projectId: "sykolive-846a3" 
+        };
+
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
@@ -64,46 +92,83 @@
             if (user) {
                 myDetails.uid = user.uid;
                 loadUsers(user.uid);
-                listenForIncomingCalls(user.uid);
-            } else { window.location.href = "index.html"; }
+                listenForCalls(user.uid);
+                loadMyBookings(user.uid);
+            } else {
+                window.location.href = "index.html"; // ಲಾಗಿನ್ ಇಲ್ಲದಿದ್ದರೆ ವಾಪಸ್ ಕಳುಹಿಸಿ
+            }
         });
 
+        // 1. ಯೂಸರ್ಸ್ ಲಿಸ್ಟ್ ಲೋಡ್ ಮಾಡುವುದು
         function loadUsers(myID) {
             onSnapshot(collection(db, "users"), (snapshot) => {
                 const list = document.getElementById('userList');
                 document.getElementById('activeCount').innerText = snapshot.size;
                 list.innerHTML = "";
+                
                 snapshot.forEach((uDoc) => {
                     const data = uDoc.data();
                     if (data.uid === myID) {
                         myDetails.name = data.name;
-                        document.getElementById('myTopImg').src = data.profilePic || "";
+                        document.getElementById('myTopImg').src = data.profilePic || "https://via.placeholder.com/35";
                     } else {
                         list.innerHTML += `
-                        <div class="user-card">
-                            <img src="${data.profilePic}">
-                            <div class="user-info"><h3>${data.name}</h3><p>₹${data.rate}/ದಿನ</p></div>
-                            <div class="btn-group">
-                                <button class="btn chat-btn" onclick="goToConnect('chat','${data.uid}','${data.name}')"><i class="fa-solid fa-comment"></i></button>
-                                <button class="btn call-btn" onclick="goToConnect('call','${data.uid}','${data.name}')"><i class="fa-solid fa-video"></i></button>
-                            </div>
-                        </div>`;
+                            <div class="user-card">
+                                <img src="${data.profilePic}">
+                                <div class="user-info">
+                                    <h3>${data.name}</h3>
+                                    <p>${data.gender || 'User'} • ₹${data.rate || '0'}/ದಿನ</p>
+                                </div>
+                                <div class="btn-group">
+                                    <button class="btn chat-btn" onclick="startChat('${data.uid}', '${data.name}')"><i class="fa-solid fa-comment-dots"></i></button>
+                                    <button class="btn call-btn" onclick="makeCall('${data.uid}', '${data.name}')"><i class="fa-solid fa-video"></i></button>
+                                    <button class="btn book-btn" onclick="bookUser('${data.uid}', '${data.name}')">BOOK</button>
+                                </div>
+                            </div>`;
                     }
                 });
             });
         }
 
-        // ಇನ್‌ಕಮಿಂಗ್ ಕಾಲ್ ಕೇಳಿಸಿಕೊಳ್ಳುವುದು
-        function listenForIncomingCalls(myID) {
+        // 2. ಬುಕ್ಕಿಂಗ್ಸ್ ಲೋಡ್ ಮಾಡುವುದು
+        function loadMyBookings(myID) {
+            const q = query(collection(db, "bookings"), where("bookedTo", "==", myID));
+            onSnapshot(q, (snapshot) => {
+                const list = document.getElementById('bookedByMeList');
+                const badge = document.getElementById('bookingBadge');
+                
+                if(!snapshot.empty) {
+                    badge.innerText = snapshot.size;
+                    badge.style.display = "inline-block";
+                }
+
+                list.innerHTML = snapshot.empty ? "<p style='padding:20px; color:#555; text-align:center;'>ಯಾವುದೇ ಬುಕ್ಕಿಂಗ್ ಬಂದಿಲ್ಲ</p>" : "";
+                
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    list.innerHTML += `
+                        <div class="user-card" style="border-left: 4px solid #ff0000;">
+                            <div class="user-info">
+                                <h3>${data.bookedByName}</h3>
+                                <p>ನಿಮ್ಮನ್ನು ಬುಕ್ ಮಾಡಿದ್ದಾರೆ</p>
+                            </div>
+                            <button class="btn chat-btn" style="width: auto; padding: 0 10px;" onclick="startChat('${data.bookedBy}', '${data.bookedByName}')">ಚಾಟ್ ಮಾಡಿ</button>
+                        </div>`;
+                });
+            });
+        }
+
+        // 3. ಇನ್‌ಕಮಿಂಗ್ ಕಾಲ್ ಕೇಳಿಸಿಕೊಳ್ಳುವುದು (Privacy Focus)
+        function listenForCalls(myID) {
             onSnapshot(doc(db, "calls", myID), (snapshot) => {
                 if (snapshot.exists()) {
                     const callData = snapshot.data();
-                    if (callData.status === "incoming") {
-                        if (confirm(callData.fromName + " ಅವರಿಂದ ಕಾಲ್ ಬರುತ್ತಿದೆ... ಅಕ್ಸೆಪ್ಟ್ ಮಾಡುವಿರಾ?")) {
-                            const room = callData.roomID;
-                            deleteDoc(doc(db, "calls", myID));
-                            window.location.href = `https://meet.jit.si/${room}`;
+                    if (callData.status === "pending") {
+                        if (confirm(callData.fromName + " ಅವರಿಂದ ವಿಡಿಯೋ ಕಾಲ್ ಬರುತ್ತಿದೆ... ಅಕ್ಸೆಪ್ಟ್ ಮಾಡುವಿರಾ?")) {
+                            // ಅಕ್ಸೆಪ್ಟ್ ಮಾಡಿದರೆ connect.html ಗೆ ಹೋಗುವುದು
+                            window.location.href = `connect.html?type=call&mode=receiver&roomID=${callData.roomID}&targetName=${encodeURIComponent(callData.fromName)}`;
                         } else {
+                            // ರಿಜೆಕ್ಟ್ ಮಾಡಿದರೆ ಕಾಲ್ ಡೇಟಾ ಡಿಲೀಟ್ ಮಾಡುವುದು
                             deleteDoc(doc(db, "calls", myID));
                         }
                     }
@@ -111,10 +176,30 @@
             });
         }
 
-        window.goToConnect = (type, uid, name) => {
-            window.location.href = `connect.html?type=${type}&targetUid=${uid}&targetName=${encodeURIComponent(name)}&myName=${encodeURIComponent(myDetails.name)}`;
+        // 4. ಕಾಲ್ ಮಾಡುವುದು
+        window.makeCall = (uid, name) => {
+            window.location.href = `connect.html?type=call&mode=caller&targetUid=${uid}&targetName=${encodeURIComponent(name)}&myName=${encodeURIComponent(myDetails.name)}`;
         };
 
+        // 5. ಚಾಟ್ ಮಾಡುವುದು
+        window.startChat = (uid, name) => {
+            window.location.href = `connect.html?type=chat&targetUid=${uid}&targetName=${encodeURIComponent(name)}`;
+        };
+
+        // 6. ಬುಕಿಂಗ್ ಮಾಡುವುದು
+        window.bookUser = async (uid, name) => {
+            if(confirm(name + " ಅವರನ್ನು ಬುಕ್ ಮಾಡಲು ಬಯಸುವಿರಾ?")) {
+                await addDoc(collection(db, "bookings"), {
+                    bookedTo: uid,
+                    bookedBy: myDetails.uid,
+                    bookedByName: myDetails.name,
+                    time: Date.now()
+                });
+                alert("ಬುಕ್ಕಿಂಗ್ ರಿಕ್ವೆಸ್ಟ್ ಕಳುಹಿಸಲಾಗಿದೆ!");
+            }
+        };
+
+        // 7. ಟ್ಯಾಬ್ ಸ್ವಿಚಿಂಗ್
         window.switchTab = (tab) => {
             document.querySelectorAll('.tab, .section').forEach(el => el.classList.remove('active'));
             if(tab === 'users') {
