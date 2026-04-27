@@ -1,63 +1,77 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="kn">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Connect - Realtime</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+    <title>RENT BF - Live</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
-        body { background: #000; color: white; padding-top: 85px; }
-
-        .header { position: fixed; top: 0; width: 100%; background: #111; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #32cd32; z-index: 1000; }
-        .my-profile { display: flex; align-items: center; gap: 10px; border: 1px solid #ff0000; padding: 5px 12px; border-radius: 20px; }
-        .my-profile img { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; }
-
-        .container { padding: 15px; max-width: 500px; margin: 0 auto; }
+        body { background: #000; color: white; padding: 10px; }
         
-        /* ಯೂಸರ್ ಕಾರ್ಡ್ */
-        .user-card { background: #111; border: 1px solid #333; border-radius: 20px; padding: 15px; margin-bottom: 20px; }
-        .user-main { display: flex; align-items: center; gap: 15px; }
-        .user-main img { width: 65px; height: 65px; border-radius: 50%; border: 2px solid #32cd32; object-fit: cover; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 2px solid #32cd32; background: #000; position: sticky; top: 0; z-index: 100; }
+        .logo-area h2 { color: #32cd32; font-weight: 800; letter-spacing: 1px; }
+        .online-status { font-size: 10px; color: #32cd32; display: flex; align-items: center; gap: 5px; }
+        .online-dot { width: 8px; height: 8px; background: #32cd32; border-radius: 50%; display: inline-block; animation: blink 1.5s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        
+        .my-profile-img { width: 35px; height: 35px; border-radius: 50%; border: 2px solid #32cd32; object-fit: cover; }
+
+        .tabs { display: flex; justify-content: space-around; margin: 15px 0; background: #111; border-radius: 15px; padding: 5px; border: 1px solid #222; }
+        .tab { padding: 10px 20px; cursor: pointer; border-radius: 12px; font-size: 13px; transition: 0.3s; color: #888; }
+        .tab.active { background: #32cd32; color: #000; font-weight: bold; }
+
+        .section { display: none; }
+        .section.active { display: block; }
+
+        .user-card { background: #111; margin-bottom: 12px; padding: 15px; border-radius: 20px; display: flex; align-items: center; border: 1px solid #222; }
+        .user-card img { width: 65px; height: 65px; border-radius: 50%; object-fit: cover; border: 2px solid #ff0000; margin-right: 15px; }
         .user-info { flex: 1; }
-        
-        .actions { display: flex; gap: 10px; margin-top: 15px; border-top: 1px solid #222; padding-top: 15px; }
-        .btn { flex: 1; padding: 10px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 12px; }
-        .btn-chat { background: #32cd32; color: #000; }
-        .btn-call { background: #ff0000; color: white; }
+        .user-info h3 { font-size: 15px; margin-bottom: 3px; }
+        .user-info p { font-size: 11px; color: #32cd32; font-weight: 600; }
 
-        /* ನೋಟಿಫಿಕೇಶನ್ ಬಾಕ್ಸ್ */
-        #incomingCall { 
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
-            background: #111; border: 2px solid #32cd32; padding: 20px; border-radius: 20px; 
-            width: 90%; display: none; z-index: 2000; text-align: center;
-        }
+        .btn-group { display: flex; gap: 8px; }
+        .btn { border: none; width: 38px; height: 38px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: 0.2s; }
+        .btn:active { transform: scale(0.9); }
+        .call-btn { background: #32cd32; color: #000; }
+        .chat-btn { background: #007bff; color: #fff; }
+        .book-btn { background: #ff0000; color: #fff; width: auto; padding: 0 15px; font-size: 12px; font-weight: bold; }
+
+        .badge { background: #ff0000; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 10px; margin-left: 5px; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <div style="color: #32cd32; font-weight: bold;">LIVE CONNECT</div>
-        <div class="my-profile">
-            <img id="myPic" src="">
-            <span id="myName" style="font-size: 12px;">...</span>
+        <div class="logo-area">
+            <h2>RENT BF</h2>
+            <div class="online-status">
+                <span class="online-dot"></span> <span id="activeCount">0</span> ಜನ ಲೈವ್ ಇದ್ದಾರೆ
+            </div>
+        </div>
+        <div id="myAvatarArea">
+            <img src="https://via.placeholder.com/35" class="my-profile-img" id="myTopImg">
         </div>
     </div>
 
-    <div id="incomingCall">
-        <h4 id="callerName">ಯಾರೋ ಕಾಲ್ ಮಾಡುತ್ತಿದ್ದಾರೆ...</h4>
-        <div style="display: flex; gap: 10px; margin-top: 15px;">
-            <button class="btn btn-chat" id="acceptBtn">Accept</button>
-            <button class="btn btn-call" onclick="document.getElementById('incomingCall').style.display='none'">Reject</button>
-        </div>
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('users')">ಯೂಸರ್ಸ್ ಲಿಸ್ಟ್</div>
+        <div class="tab" onclick="switchTab('bookings')">ನನ್ನ ಬುಕ್ಕಿಂಗ್ಸ್ <span id="bookingBadge" class="badge" style="display:none;">0</span></div>
     </div>
 
-    <div class="container" id="usersList"></div>
+    <div id="usersSection" class="section active">
+        <div id="userList"></div>
+    </div>
+
+    <div id="bookingsSection" class="section">
+        <h4 style="padding: 10px; color: #32cd32; font-size: 14px;">ನಿಮ್ಮನ್ನು ಬುಕ್ ಮಾಡಿರುವ ಗ್ರಾಹಕರು:</h4>
+        <div id="bookedByMeList"></div>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, query, where, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = { 
@@ -65,86 +79,139 @@
             authDomain: "sykolive-846a3.firebaseapp.com", 
             projectId: "sykolive-846a3" 
         };
+
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        let myID = "";
-        let myName = "";
+        let myDetails = {};
 
-        onAuthStateChanged(auth, async (user) => {
+        onAuthStateChanged(auth, (user) => {
             if (user) {
-                myID = user.uid;
-                const snap = await getDoc(doc(db, "users", user.uid));
-                if (snap.exists()) {
-                    myName = snap.data().name;
-                    document.getElementById('myPic').src = snap.data().profilePic;
-                    document.getElementById('myName').innerText = myName;
-                    listenForCalls();
-                    loadUsers();
-                }
+                myDetails.uid = user.uid;
+                loadUsers(user.uid);
+                listenForCalls(user.uid);
+                loadMyBookings(user.uid);
+            } else {
+                window.location.href = "index.html";
             }
         });
 
-        // 1. ಕಾಲ್ ರಿಕ್ವೆಸ್ಟ್ ಕಳುಹಿಸುವುದು
-        window.makeCall = async (targetUID, targetName) => {
-            alert(targetName + " ಅವರಿಗೆ ವಿಡಿಯೋ ಕಾಲ್ ರಿಕ್ವೆಸ್ಟ್ ಕಳುಹಿಸಲಾಗಿದೆ...");
-            await setDoc(doc(db, "calls", targetUID), {
-                fromID: myID,
-                fromName: myName,
-                status: "calling",
-                timestamp: Date.now()
+        function loadUsers(myID) {
+            onSnapshot(collection(db, "users"), (snapshot) => {
+                const list = document.getElementById('userList');
+                document.getElementById('activeCount').innerText = snapshot.size;
+                list.innerHTML = "";
+                
+                snapshot.forEach((userDoc) => {
+                    const data = userDoc.data();
+                    if (data.uid === myID) {
+                        myDetails.name = data.name;
+                        document.getElementById('myTopImg').src = data.profilePic || "https://via.placeholder.com/35";
+                    } else {
+                        list.innerHTML += `
+                            <div class="user-card">
+                                <img src="${data.profilePic}">
+                                <div class="user-info">
+                                    <h3>${data.name}</h3>
+                                    <p>${data.gender} • ₹${data.rate}/ದಿನ</p>
+                                </div>
+                                <div class="btn-group">
+                                    <button class="btn chat-btn" onclick="startChat('${data.uid}', '${data.name}')"><i class="fa-solid fa-comment-dots"></i></button>
+                                    <button class="btn call-btn" onclick="makeCall('${data.uid}', '${data.name}')"><i class="fa-solid fa-video"></i></button>
+                                    <button class="btn book-btn" onclick="bookUser('${data.uid}', '${data.name}')">BOOK</button>
+                                </div>
+                            </div>`;
+                    }
+                });
             });
+        }
+
+        function loadMyBookings(myID) {
+            const q = query(collection(db, "bookings"), where("bookedTo", "==", myID));
+            onSnapshot(q, (snapshot) => {
+                const list = document.getElementById('bookedByMeList');
+                const badge = document.getElementById('bookingBadge');
+                
+                if(!snapshot.empty) {
+                    badge.innerText = snapshot.size;
+                    badge.style.display = "inline-block";
+                }
+
+                list.innerHTML = snapshot.empty ? "<p style='padding:20px; color:#555; text-align:center;'>ಯಾವುದೇ ಬುಕ್ಕಿಂಗ್ ಬಂದಿಲ್ಲ</p>" : "";
+                
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    list.innerHTML += `
+                        <div class="user-card" style="border-left: 4px solid #ff0000;">
+                            <div class="user-info">
+                                <h3>${data.bookedByName}</h3>
+                                <p>ನಿಮ್ಮನ್ನು ಬುಕ್ ಮಾಡಿದ್ದಾರೆ</p>
+                            </div>
+                            <button class="btn chat-btn" style="width: auto; padding: 0 10px;" onclick="startChat('${data.bookedBy}', '${data.bookedByName}')">ಚಾಟ್ ಮಾಡಿ</button>
+                        </div>`;
+                });
+            });
+        }
+
+        // --- ವಿಡಿಯೋ ಕಾಲ್ ಸಿಸ್ಟಮ್ ---
+        window.makeCall = async (targetUID, targetName) => {
+            const roomID = "RENTBF_" + Math.random().toString(36).substring(7);
+            await setDoc(doc(db, "calls", targetUID), { 
+                fromName: myDetails.name, 
+                fromID: myDetails.uid,
+                roomID: roomID, 
+                status: "incoming" 
+            });
+            alert(targetName + " ಅವರಿಗೆ ಕಾಲ್ ಹೋಗುತ್ತಿದೆ...");
+            window.open(`https://meet.jit.si/${roomID}#config.prejoinPageEnabled=false`, '_blank');
         };
 
-        // 2. ಇನ್‌ಕಮಿಂಗ್ ಕಾಲ್‌ಗಾಗಿ ಕಾಯುವುದು
-        function listenForCalls() {
-            onSnapshot(doc(db, "calls", myID), (docSnap) => {
-                if (docSnap.exists() && docSnap.data().status === "calling") {
-                    const data = docSnap.data();
-                    document.getElementById('incomingCall').style.display = 'block';
-                    document.getElementById('callerName').innerText = data.fromName + " ಕಾಲ್ ಮಾಡುತ್ತಿದ್ದಾರೆ...";
-                    
-                    document.getElementById('acceptBtn').onclick = () => {
-                        // ವಿಡಿಯೋ ಕಾಲಿಂಗ್ ರೂಮ್ ಲಿಂಕ್ (Jitsi Meet ಬಳಸಲಾಗಿದೆ - ಇದು ಉಚಿತ ಮತ್ತು ರಿಯಲ್ ಆಗಿ ಕೆಲಸ ಮಾಡುತ್ತದೆ)
-                        const roomID = "RentApp_" + data.fromID;
-                        window.open(`https://meet.jit.si/${roomID}`, '_blank');
-                        document.getElementById('incomingCall').style.display = 'none';
-                    };
+        function listenForCalls(myID) {
+            onSnapshot(doc(db, "calls", myID), (snapshot) => {
+                if (snapshot.exists()) {
+                    const callData = snapshot.data();
+                    if (callData.status === "incoming") {
+                        if (confirm(callData.fromName + " ಅವರಿಂದ ವಿಡಿಯೋ ಕಾಲ್ ಬರುತ್ತಿದೆ... ಅಕ್ಸೆಪ್ಟ್ ಮಾಡುವಿರಾ?")) {
+                            window.open(`https://meet.jit.si/${callData.roomID}#config.prejoinPageEnabled=false`, '_blank');
+                        }
+                        deleteDoc(doc(db, "calls", myID));
+                    }
                 }
             });
         }
 
-        // 3. ಯೂಸರ್ಸ್ ಲಿಸ್ಟ್ ಲೋಡ್ ಮಾಡುವುದು
-        function loadUsers() {
-            onSnapshot(collection(db, "users"), (snapshot) => {
-                const list = document.getElementById('usersList');
-                list.innerHTML = "";
-                snapshot.forEach((uDoc) => {
-                    const u = uDoc.data();
-                    if (u.uid === myID) return;
+        // --- ಚಾಟಿಂಗ್ ಸಿಸ್ಟಮ್ ---
+        window.startChat = (targetUID, targetName) => {
+            // ಚಾಟ್‌ಗಾಗಿ ಒಂದು ಯುನಿಕ್ ಲಿಂಕ್ ಕ್ರಿಯೇಟ್ ಮಾಡೋಣ
+            const chatID = [myDetails.uid, targetUID].sort().join("_");
+            // ಒಂದು ವೇಳೆ ನೀವು chat.html ಮಾಡಿದ್ದರೆ ಅಲ್ಲಿಗೆ ಹೋಗುತ್ತದೆ, ಇಲ್ಲದಿದ್ದರೆ ರಿಯಲ್ ಚಾಟ್ ರೂಮ್ ಲೋಡ್ ಆಗುತ್ತದೆ
+            alert(targetName + " ಜೊತೆಗಿನ ಚಾಟ್ ಆರಂಭವಾಗುತ್ತಿದೆ...");
+            // ಇಲ್ಲಿ ನೀವು ನಿಮ್ಮ ಚಾಟ್ ಫೈಲ್ ಲಿಂಕ್ ಕೊಡಬಹುದು:
+            // window.location.href = `chat.html?chatId=${chatID}&targetName=${targetName}`;
+        };
 
-                    list.innerHTML += `
-                        <div class="user-card">
-                            <div class="user-main">
-                                <img src="${u.profilePic}">
-                                <div class="user-info">
-                                    <h3>${u.name}, ${u.age}</h3>
-                                    <p>₹${u.rate} / ದಿನಕ್ಕೆ</p>
-                                </div>
-                            </div>
-                            <div class="actions">
-                                <button class="btn btn-chat" onclick="alert('ಚಾಟ್ ಸಿಸ್ಟಮ್ ಶೀಘ್ರದಲ್ಲೇ ಬರಲಿದೆ!')">
-                                    <i class="fa-solid fa-message"></i> ಚಾಟ್
-                                </button>
-                                <button class="btn btn-call" onclick="makeCall('${u.uid}', '${u.name}')">
-                                    <i class="fa-solid fa-video"></i> ವಿಡಿಯೋ ಕಾಲ್
-                                </button>
-                            </div>
-                        </div>
-                    `;
+        window.bookUser = async (targetUID, targetName) => {
+            if(confirm(targetName + " ಅವರನ್ನು ಬುಕ್ ಮಾಡಲು ಬಯಸುವಿರಾ?")) {
+                await addDoc(collection(db, "bookings"), {
+                    bookedTo: targetUID,
+                    bookedBy: myDetails.uid,
+                    bookedByName: myDetails.name,
+                    time: Date.now()
                 });
-            });
+                alert("ಬುಕ್ಕಿಂಗ್ ರಿಕ್ವೆಸ್ಟ್ ಕಳುಹಿಸಲಾಗಿದೆ!");
+            }
+        };
+
+        window.switchTab = (tab) => {
+            document.querySelectorAll('.tab, .section').forEach(el => el.classList.remove('active'));
+            if(tab === 'users') {
+                document.querySelectorAll('.tab')[0].classList.add('active');
+                document.getElementById('usersSection').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab')[1].classList.add('active');
+                document.getElementById('bookingsSection').classList.add('active');
+            }
         }
     </script>
 </body>
