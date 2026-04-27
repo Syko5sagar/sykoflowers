@@ -9,36 +9,25 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
         body { background: #000; color: white; padding: 10px; }
-        
-        .header { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 2px solid #32cd32; background: #000; position: sticky; top: 0; z-index: 100; }
-        .logo-area h2 { color: #32cd32; font-weight: 800; letter-spacing: 1px; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 2px solid #32cd32; position: sticky; top: 0; background: #000; z-index: 100; }
+        .logo-area h2 { color: #32cd32; font-weight: 800; }
         .online-status { font-size: 10px; color: #32cd32; display: flex; align-items: center; gap: 5px; }
-        .online-dot { width: 8px; height: 8px; background: #32cd32; border-radius: 50%; display: inline-block; animation: blink 1.5s infinite; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
-        
-        .my-profile-img { width: 35px; height: 35px; border-radius: 50%; border: 2px solid #32cd32; object-fit: cover; }
-
-        .tabs { display: flex; justify-content: space-around; margin: 15px 0; background: #111; border-radius: 15px; padding: 5px; border: 1px solid #222; }
-        .tab { padding: 10px 20px; cursor: pointer; border-radius: 12px; font-size: 13px; transition: 0.3s; color: #888; }
+        .online-dot { width: 8px; height: 8px; background: #32cd32; border-radius: 50%; animation: blink 1.5s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        .my-profile-img { width: 35px; height: 35px; border-radius: 50%; border: 2px solid #32cd32; }
+        .tabs { display: flex; justify-content: space-around; margin: 15px 0; background: #111; border-radius: 15px; padding: 5px; }
+        .tab { padding: 10px 20px; cursor: pointer; border-radius: 12px; font-size: 13px; color: #888; }
         .tab.active { background: #32cd32; color: #000; font-weight: bold; }
-
         .section { display: none; }
         .section.active { display: block; }
-
         .user-card { background: #111; margin-bottom: 12px; padding: 15px; border-radius: 20px; display: flex; align-items: center; border: 1px solid #222; }
-        .user-card img { width: 65px; height: 65px; border-radius: 50%; object-fit: cover; border: 2px solid #ff0000; margin-right: 15px; }
+        .user-card img { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid #32cd32; margin-right: 15px; }
         .user-info { flex: 1; }
-        .user-info h3 { font-size: 15px; margin-bottom: 3px; }
-        .user-info p { font-size: 11px; color: #32cd32; font-weight: 600; }
-
         .btn-group { display: flex; gap: 8px; }
-        .btn { border: none; width: 38px; height: 38px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: 0.2s; }
-        .btn:active { transform: scale(0.9); }
+        .btn { border: none; width: 38px; height: 38px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
         .call-btn { background: #32cd32; color: #000; }
         .chat-btn { background: #007bff; color: #fff; }
-        .book-btn { background: #ff0000; color: #fff; width: auto; padding: 0 15px; font-size: 12px; font-weight: bold; }
-
-        .badge { background: #ff0000; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 10px; margin-left: 5px; font-weight: bold; }
+        .book-btn { background: #ff0000; color: #fff; width: auto; padding: 0 12px; font-size: 11px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -46,40 +35,25 @@
     <div class="header">
         <div class="logo-area">
             <h2>RENT BF</h2>
-            <div class="online-status">
-                <span class="online-dot"></span> <span id="activeCount">0</span> ಜನ ಲೈವ್ ಇದ್ದಾರೆ
-            </div>
+            <div class="online-status"><span class="online-dot"></span> <span id="activeCount">0</span> ಲೈವ್ ಇದ್ದಾರೆ</div>
         </div>
-        <div id="myAvatarArea">
-            <img src="https://via.placeholder.com/35" class="my-profile-img" id="myTopImg">
-        </div>
+        <img src="https://via.placeholder.com/35" class="my-profile-img" id="myTopImg">
     </div>
 
     <div class="tabs">
         <div class="tab active" onclick="switchTab('users')">ಯೂಸರ್ಸ್ ಲಿಸ್ಟ್</div>
-        <div class="tab" onclick="switchTab('bookings')">ನನ್ನ ಬುಕ್ಕಿಂಗ್ಸ್ <span id="bookingBadge" class="badge" style="display:none;">0</span></div>
+        <div class="tab" onclick="switchTab('bookings')">ಬುಕ್ಕಿಂಗ್ಸ್ <span id="bookingBadge" style="display:none; color:red;">●</span></div>
     </div>
 
-    <div id="usersSection" class="section active">
-        <div id="userList"></div>
-    </div>
-
-    <div id="bookingsSection" class="section">
-        <h4 style="padding: 10px; color: #32cd32; font-size: 14px;">ನಿಮ್ಮನ್ನು ಬುಕ್ ಮಾಡಿರುವ ಗ್ರಾಹಕರು:</h4>
-        <div id="bookedByMeList"></div>
-    </div>
+    <div id="usersSection" class="section active"><div id="userList"></div></div>
+    <div id="bookingsSection" class="section"><div id="bookedByMeList"></div></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, query, where, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, doc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-        const firebaseConfig = { 
-            apiKey: "AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ", 
-            authDomain: "sykolive-846a3.firebaseapp.com", 
-            projectId: "sykolive-846a3" 
-        };
-
+        const firebaseConfig = { apiKey: "AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ", authDomain: "sykolive-846a3.firebaseapp.com", projectId: "sykolive-846a3" };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
@@ -90,11 +64,8 @@
             if (user) {
                 myDetails.uid = user.uid;
                 loadUsers(user.uid);
-                listenForCalls(user.uid);
-                loadMyBookings(user.uid);
-            } else {
-                window.location.href = "index.html";
-            }
+                listenForIncomingCalls(user.uid);
+            } else { window.location.href = "index.html"; }
         });
 
         function loadUsers(myID) {
@@ -102,105 +73,46 @@
                 const list = document.getElementById('userList');
                 document.getElementById('activeCount').innerText = snapshot.size;
                 list.innerHTML = "";
-                
-                snapshot.forEach((userDoc) => {
-                    const data = userDoc.data();
+                snapshot.forEach((uDoc) => {
+                    const data = uDoc.data();
                     if (data.uid === myID) {
                         myDetails.name = data.name;
-                        document.getElementById('myTopImg').src = data.profilePic || "https://via.placeholder.com/35";
+                        document.getElementById('myTopImg').src = data.profilePic || "";
                     } else {
                         list.innerHTML += `
-                            <div class="user-card">
-                                <img src="${data.profilePic}">
-                                <div class="user-info">
-                                    <h3>${data.name}</h3>
-                                    <p>${data.gender} • ₹${data.rate}/ದಿನ</p>
-                                </div>
-                                <div class="btn-group">
-                                    <button class="btn chat-btn" onclick="startChat('${data.uid}', '${data.name}')"><i class="fa-solid fa-comment-dots"></i></button>
-                                    <button class="btn call-btn" onclick="makeCall('${data.uid}', '${data.name}')"><i class="fa-solid fa-video"></i></button>
-                                    <button class="btn book-btn" onclick="bookUser('${data.uid}', '${data.name}')">BOOK</button>
-                                </div>
-                            </div>`;
+                        <div class="user-card">
+                            <img src="${data.profilePic}">
+                            <div class="user-info"><h3>${data.name}</h3><p>₹${data.rate}/ದಿನ</p></div>
+                            <div class="btn-group">
+                                <button class="btn chat-btn" onclick="goToConnect('chat','${data.uid}','${data.name}')"><i class="fa-solid fa-comment"></i></button>
+                                <button class="btn call-btn" onclick="goToConnect('call','${data.uid}','${data.name}')"><i class="fa-solid fa-video"></i></button>
+                            </div>
+                        </div>`;
                     }
                 });
             });
         }
 
-        function loadMyBookings(myID) {
-            const q = query(collection(db, "bookings"), where("bookedTo", "==", myID));
-            onSnapshot(q, (snapshot) => {
-                const list = document.getElementById('bookedByMeList');
-                const badge = document.getElementById('bookingBadge');
-                
-                if(!snapshot.empty) {
-                    badge.innerText = snapshot.size;
-                    badge.style.display = "inline-block";
-                }
-
-                list.innerHTML = snapshot.empty ? "<p style='padding:20px; color:#555; text-align:center;'>ಯಾವುದೇ ಬುಕ್ಕಿಂಗ್ ಬಂದಿಲ್ಲ</p>" : "";
-                
-                snapshot.forEach((doc) => {
-                    const data = doc.data();
-                    list.innerHTML += `
-                        <div class="user-card" style="border-left: 4px solid #ff0000;">
-                            <div class="user-info">
-                                <h3>${data.bookedByName}</h3>
-                                <p>ನಿಮ್ಮನ್ನು ಬುಕ್ ಮಾಡಿದ್ದಾರೆ</p>
-                            </div>
-                            <button class="btn chat-btn" style="width: auto; padding: 0 10px;" onclick="startChat('${data.bookedBy}', '${data.bookedByName}')">ಚಾಟ್ ಮಾಡಿ</button>
-                        </div>`;
-                });
-            });
-        }
-
-        // --- ವಿಡಿಯೋ ಕಾಲ್ ಸಿಸ್ಟಮ್ ---
-        window.makeCall = async (targetUID, targetName) => {
-            const roomID = "RENTBF_" + Math.random().toString(36).substring(7);
-            await setDoc(doc(db, "calls", targetUID), { 
-                fromName: myDetails.name, 
-                fromID: myDetails.uid,
-                roomID: roomID, 
-                status: "incoming" 
-            });
-            alert(targetName + " ಅವರಿಗೆ ಕಾಲ್ ಹೋಗುತ್ತಿದೆ...");
-            window.open(`https://meet.jit.si/${roomID}#config.prejoinPageEnabled=false`, '_blank');
-        };
-
-        function listenForCalls(myID) {
+        // ಇನ್‌ಕಮಿಂಗ್ ಕಾಲ್ ಕೇಳಿಸಿಕೊಳ್ಳುವುದು
+        function listenForIncomingCalls(myID) {
             onSnapshot(doc(db, "calls", myID), (snapshot) => {
                 if (snapshot.exists()) {
                     const callData = snapshot.data();
                     if (callData.status === "incoming") {
-                        if (confirm(callData.fromName + " ಅವರಿಂದ ವಿಡಿಯೋ ಕಾಲ್ ಬರುತ್ತಿದೆ... ಅಕ್ಸೆಪ್ಟ್ ಮಾಡುವಿರಾ?")) {
-                            window.open(`https://meet.jit.si/${callData.roomID}#config.prejoinPageEnabled=false`, '_blank');
+                        if (confirm(callData.fromName + " ಅವರಿಂದ ಕಾಲ್ ಬರುತ್ತಿದೆ... ಅಕ್ಸೆಪ್ಟ್ ಮಾಡುವಿರಾ?")) {
+                            const room = callData.roomID;
+                            deleteDoc(doc(db, "calls", myID));
+                            window.location.href = `https://meet.jit.si/${room}`;
+                        } else {
+                            deleteDoc(doc(db, "calls", myID));
                         }
-                        deleteDoc(doc(db, "calls", myID));
                     }
                 }
             });
         }
 
-        // --- ಚಾಟಿಂಗ್ ಸಿಸ್ಟಮ್ ---
-        window.startChat = (targetUID, targetName) => {
-            // ಚಾಟ್‌ಗಾಗಿ ಒಂದು ಯುನಿಕ್ ಲಿಂಕ್ ಕ್ರಿಯೇಟ್ ಮಾಡೋಣ
-            const chatID = [myDetails.uid, targetUID].sort().join("_");
-            // ಒಂದು ವೇಳೆ ನೀವು chat.html ಮಾಡಿದ್ದರೆ ಅಲ್ಲಿಗೆ ಹೋಗುತ್ತದೆ, ಇಲ್ಲದಿದ್ದರೆ ರಿಯಲ್ ಚಾಟ್ ರೂಮ್ ಲೋಡ್ ಆಗುತ್ತದೆ
-            alert(targetName + " ಜೊತೆಗಿನ ಚಾಟ್ ಆರಂಭವಾಗುತ್ತಿದೆ...");
-            // ಇಲ್ಲಿ ನೀವು ನಿಮ್ಮ ಚಾಟ್ ಫೈಲ್ ಲಿಂಕ್ ಕೊಡಬಹುದು:
-            // window.location.href = `chat.html?chatId=${chatID}&targetName=${targetName}`;
-        };
-
-        window.bookUser = async (targetUID, targetName) => {
-            if(confirm(targetName + " ಅವರನ್ನು ಬುಕ್ ಮಾಡಲು ಬಯಸುವಿರಾ?")) {
-                await addDoc(collection(db, "bookings"), {
-                    bookedTo: targetUID,
-                    bookedBy: myDetails.uid,
-                    bookedByName: myDetails.name,
-                    time: Date.now()
-                });
-                alert("ಬುಕ್ಕಿಂಗ್ ರಿಕ್ವೆಸ್ಟ್ ಕಳುಹಿಸಲಾಗಿದೆ!");
-            }
+        window.goToConnect = (type, uid, name) => {
+            window.location.href = `connect.html?type=${type}&targetUid=${uid}&targetName=${encodeURIComponent(name)}&myName=${encodeURIComponent(myDetails.name)}`;
         };
 
         window.switchTab = (tab) => {
@@ -212,7 +124,7 @@
                 document.querySelectorAll('.tab')[1].classList.add('active');
                 document.getElementById('bookingsSection').classList.add('active');
             }
-        }
+        };
     </script>
 </body>
 </html>
