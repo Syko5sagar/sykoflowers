@@ -1,33 +1,36 @@
-<input id="msg" placeholder="Type message">
-<button onclick="send()">Send</button>
+<!DOCTYPE html>
+<html>
+<body style="background:black;color:white">
+
 <div id="chat"></div>
+<input id="msg">
+<button onclick="send()">Send</button>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-const app = initializeApp({ apiKey:"YOUR", authDomain:"YOUR", projectId:"YOUR" });
-const db = getFirestore(app);
+const app = initializeApp({
+ apiKey:"AIzaSy...",
+ authDomain:"sykolive-846a3.firebaseapp.com",
+ projectId:"sykolive-846a3"
+});
 
-const params = new URLSearchParams(window.location.search);
-const chatID = params.get("chatID");
+const db=getFirestore(app);
 
-const ref = collection(db, "chats", chatID, "messages");
+const id=new URLSearchParams(location.search).get("chatID");
+const ref=collection(db,"chats",id,"m");
 
-window.send = async () => {
-  const text = document.getElementById("msg").value;
-
-  await addDoc(ref, {
-    text,
-    time: Date.now()
-  });
+window.send=async()=>{
+ await addDoc(ref,{text:msg.value});
 };
 
-onSnapshot(query(ref, orderBy("time")), snap => {
-  let html = "";
-  snap.forEach(doc => {
-    html += `<p>${doc.data().text}</p>`;
-  });
-  document.getElementById("chat").innerHTML = html;
+onSnapshot(ref,s=>{
+ let h="";
+ s.forEach(d=>h+=d.data().text+"<br>");
+ chat.innerHTML=h;
 });
 </script>
+
+</body>
+</html>
