@@ -1,174 +1,64 @@
+<!DOCTYPE html>
+<html>
+<body style="background:black;color:white">
+
+<h2>Users</h2>
+<div id="list"></div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getFirestore, collection, onSnapshot, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
-    authDomain: "sykolive-846a3.firebaseapp.com",
-    projectId: "sykolive-846a3"
+ apiKey:"AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
+ authDomain:"sykolive-846a3.firebaseapp.com",
+ projectId:"sykolive-846a3"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-let currentUID = null;
-let myName = "User";
+let uid;
 
-onAuthStateChanged(auth, (user) => {
-    if (user) {
-        currentUID = user.uid;
+auth.onAuthStateChanged(u=>{
+ uid=u.uid;
 
-        updateDoc(doc(db, "users", user.uid), {
-            isOnline: true
-        }).catch(() => {
-            setDoc(doc(db, "users", user.uid), {
-                uid: user.uid,
-                name: user.displayName || "User",
-                isOnline: true
-            }, { merge: true });
-        });
-
-        loadUsers();
-        listenForCalls();
-    } else {
-        window.location.href = "index.html";
-    }
+ onSnapshot(collection(db,"users"),snap=>{
+  let html="";
+  snap.forEach(d=>{
+   const x=d.data();
+   if(x.uid!=uid){
+    html+=`
+    <div>
+      <img src="${x.profilePic}" width=50>
+      ${x.name} ₹${x.rate}
+      <button onclick="chat('${x.uid}')">Chat</button>
+      <button onclick="call('${x.uid}')">Call</button>
+      <button onclick="book('${x.uid}')">Book</button>
+    </div>`;
+   }
+  });
+  document.getElementById("list").innerHTML=html;
+ });
 });
 
-
-// 🔥 LOAD USERS (ONLY ONLINE USERS)
-function loadUsers() {
-    onSnapshot(collection(db, "users"), (snapshot) => {
-        const list = document.getElementById('userList');
-        list.innerHTML = "";
-
-        snapshot.forEach((uDoc) => {
-            const data = uDoc.data();
-
-            // ❌ skip self
-            if (data.uid === currentUID) {
-                myName = data.name;
-                return;
-            }
-
-            // ❌ only show online users
-            if (!data.isOnline) return;
-
-            const card = document.createElement('div');
-            card.className = 'user-card';
-
-            card.innerHTML = `
-                <div class="user-info" onclick="openProfile('${data.uid}')">
-                    <img src="${data.profilePic || 'https://via.placeholder.com/50'}">
-                    <div>
-                        <strong>${data.name}</strong><br>
-                        <small>Age: ${data.age || '-'} | ₹${data.rate || '-'}</small><br>
-                        <span style="color:#32cd32">
-                            <span class="status-dot"></span> Online
-                        </span>
-                    </div>
-                </div>
-
-                <div class="actions">
-                    <button class="btn chat-btn" onclick="startChat('${data.uid}', '${data.name}')">
-                        <i class="fa-solid fa-message"></i>
-                    </button>
-
-                    <button class="btn call-btn" onclick="startCall('${data.uid}', '${data.name}')">
-                        <i class="fa-solid fa-video"></i>
-                    </button>
-
-                    <button class="btn" style="background:orange;color:black"
-                        onclick="bookUser('${data.uid}')">
-                        ₹
-                    </button>
-                </div>
-            `;
-
-            list.appendChild(card);
-        });
-    });
-}
-
-
-// 🎥 CALL
-window.startCall = async (targetUid, targetName) => {
-    const roomID = "ROOM_" + Math.floor(Math.random() * 1000000);
-
-    await setDoc(doc(db, "calls", targetUid), {
-        fromID: currentUID,
-        fromName: myName,
-        roomID,
-        status: "pending"
-    });
-
-    window.location.href =
-        `connect.html?mode=caller&roomID=${roomID}&targetName=${encodeURIComponent(targetName)}`;
+window.chat=(id)=>{
+ location.href=`chat.html?chatID=${uid}_${id}`;
 };
 
-
-// 💬 CHAT
-window.startChat = (targetUid, targetName) => {
-    const chatID = currentUID < targetUid
-        ? currentUID + "_" + targetUid
-        : targetUid + "_" + currentUID;
-
-    window.location.href =
-        `chat.html?chatID=${chatID}&targetName=${encodeURIComponent(targetName)}`;
+window.call=async(id)=>{
+ const room="R"+Math.random();
+ await setDoc(doc(db,"calls",id),{from:uid,room});
+ location.href=`connect.html?room=${room}&mode=caller`;
 };
 
-
-// 💰 BOOKING
-window.bookUser = async (targetUid) => {
-    await setDoc(doc(db, "bookings", currentUID + "_" + targetUid), {
-        from: currentUID,
-        to: targetUid,
-        status: "pending",
-        time: Date.now()
-    });
-
-    alert("Booking Request Sent!");
+window.book=async(id)=>{
+ await setDoc(doc(db,"bookings",uid+"_"+id),{from:uid,to:id});
+ alert("Booked");
 };
-
-
-// 👤 PROFILE VIEW
-window.openProfile = (uid) => {
-    window.location.href = `profile-view.html?uid=${uid}`;
-};
-
-
-// 📞 INCOMING CALL
-function listenForCalls() {
-    onSnapshot(doc(db, "calls", currentUID), (docSnap) => {
-        if (docSnap.exists() && docSnap.data().status === "pending") {
-
-            const data = docSnap.data();
-
-            document.getElementById('callerName').innerText = data.fromName;
-            document.getElementById('incomingCallOverlay').style.display = 'flex';
-
-            document.getElementById('acceptBtn').onclick = () => {
-                window.location.href =
-                    `connect.html?mode=receiver&roomID=${data.roomID}&targetName=${encodeURIComponent(data.fromName)}`;
-            };
-
-            document.getElementById('rejectBtn').onclick = async () => {
-                await deleteDoc(doc(db, "calls", currentUID));
-                document.getElementById('incomingCallOverlay').style.display = 'none';
-            };
-        }
-    });
-}
-
-
-// 🔴 OFFLINE FIX
-window.addEventListener("beforeunload", async () => {
-    if (currentUID) {
-        await updateDoc(doc(db, "users", currentUID), {
-            isOnline: false
-        });
-    }
-});
 </script>
+
+</body>
+</html>
