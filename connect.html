@@ -1,18 +1,71 @@
 <!DOCTYPE html>
-<html>
+<html lang="kn">
 <head>
-    <title>SykoLive Video Call</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WhatsApp Style Call</title>
     <style>
-        body { background: #000; color: #fff; text-align: center; font-family: sans-serif; }
-        video { width: 45%; background: #222; margin: 10px; border-radius: 10px; border: 2px solid #444; }
-        .btn-container { margin-top: 20px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0b141a; font-family: sans-serif; overflow: hidden; height: 100vh; display: flex; align-items: center; justify-content: center; }
+
+        /* ಮೈಕ್ರೋಫೋನ್ ಲೈಟಿಂಗ್ ಎಫೆಕ್ಟ್ */
+        #lighting-edge {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; border: 0px solid transparent; transition: border 0.1s ease; z-index: 10;
+        }
+
+        /* ರಿಮೋಟ್ ವಿಡಿಯೋ (Full Screen) */
+        #remote { width: 100%; height: 100%; object-fit: cover; position: absolute; }
+
+        /* ಲೋಕಲ್ ವಿಡಿಯೋ (Small Floating Window) */
+        #local { 
+            position: absolute; top: 20px; right: 20px; width: 100px; height: 150px; 
+            border-radius: 12px; object-fit: cover; border: 2px solid #fff; z-index: 5;
+            transition: 0.3s;
+        }
+
+        /* ಫಿಲ್ಟರ್‌ಗಳ ಪ್ಯಾನಲ್ */
+        .filter-container {
+            position: absolute; bottom: 120px; left: 0; width: 100%;
+            overflow-x: auto; display: flex; gap: 10px; padding: 10px; z-index: 20;
+            background: rgba(0,0,0,0.4); scrollbar-width: none;
+        }
+        .filter-btn {
+            min-width: 60px; height: 60px; border-radius: 50%; border: 2px solid #fff;
+            background: #444; color: white; font-size: 10px; display: flex; 
+            align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
+        }
+
+        /* ವಾಟ್ಸಾಪ್ ಕಂಟ್ರೋಲ್ ಬಟನ್ಸ್‌ */
+        .controls {
+            position: absolute; bottom: 30px; width: 100%; display: flex;
+            justify-content: space-around; align-items: center; z-index: 20;
+        }
+        .btn {
+            width: 60px; height: 60px; border-radius: 50%; border: none;
+            display: flex; align-items: center; justify-content: center; font-size: 24px; color: white; cursor: pointer;
+        }
+        .end-call { background: #ff3b30; }
+        .switch-cam { background: rgba(255,255,255,0.2); }
+        .filter-toggle { background: #075e54; font-size: 14px; }
     </style>
 </head>
 <body>
-    <h2>SykoLive Video Call</h2>
-    <video id="local" autoplay playsinline muted></video>
+
+    <div id="lighting-edge"></div>
+
     <video id="remote" autoplay playsinline></video>
-    <div id="status">Status: Initializing...</div>
+    <video id="local" autoplay playsinline muted></video>
+
+    <div class="filter-container" id="filters">
+        <div class="filter-btn" onclick="applyFilter('none')">Normal</div>
+    </div>
+
+    <div class="controls">
+        <button class="btn filter-toggle" onclick="toggleFilters()">Filters</button>
+        <button class="btn switch-cam" onclick="switchCamera()">🔄</button>
+        <button class="btn end-call" onclick="window.location.reload()">📞</button>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -31,24 +84,27 @@
         const db = getFirestore(app);
         const pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
 
+        let localStream;
+        let useFrontCamera = true;
         const params = new URLSearchParams(window.location.search);
         const roomId = params.get("room");
         const isCaller = params.get("caller") === "true";
 
-        async function start() {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            document.getElementById("local").srcObject = stream;
-            stream.getTracks().forEach(track => pc.addTrack(track, stream));
+        async function init() {
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            document.getElementById("local").srcObject = localStream;
+            localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+            
+            // ವಾಯ್ಸ್ ಲೈಟಿಂಗ್ ಎಫೆಕ್ಟ್ ಆರಂಭ
+            setupAudioVisualizer(localStream);
 
             pc.ontrack = e => document.getElementById("remote").srcObject = e.streams[0];
 
-            if (!roomId) return document.getElementById("status").innerText = "Error: No Room ID";
+            if (!roomId) return;
             const roomRef = doc(db, "rooms", roomId);
 
             pc.onicecandidate = e => {
-                if (e.candidate) {
-                    addDoc(collection(roomRef, isCaller ? "callerCandidates" : "calleeCandidates"), e.candidate.toJSON());
-                }
+                if (e.candidate) addDoc(collection(roomRef, isCaller ? "callerCandidates" : "calleeCandidates"), e.candidate.toJSON());
             };
 
             if (isCaller) {
@@ -72,9 +128,79 @@
                 });
                 onSnapshot(collection(roomRef, "callerCandidates"), s => s.docChanges().forEach(c => { if (c.type === "added") pc.addIceCandidate(new RTCIceCandidate(c.doc.data())); }));
             }
-            document.getElementById("status").innerText = "Ready!";
         }
-        start();
+
+        // 🔄 ಕ್ಯಾಮೆರಾ ಸ್ವಿಚ್ ಫಂಕ್ಷನ್
+        window.switchCamera = async () => {
+            useFrontCamera = !useFrontCamera;
+            const videoTrack = localStream.getVideoTracks()[0];
+            videoTrack.stop();
+
+            const newStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: useFrontCamera ? "user" : "environment" },
+                audio: true
+            });
+            
+            const newVideoTrack = newStream.getVideoTracks()[0];
+            const sender = pc.getSenders().find(s => s.track.kind === "video");
+            sender.replaceTrack(newVideoTrack);
+            localStream = newStream;
+            document.getElementById("local").srcObject = newStream;
+        };
+
+        // 🎨 50 ಫಿಲ್ಟರ್‌ಗಳನ್ನು ಆಡ್ ಮಾಡುವುದು
+        const filterList = ["grayscale", "sepia", "invert", "blur", "brightness", "contrast", "hue-rotate", "saturate"];
+        const filterContainer = document.getElementById("filters");
+        for (let i = 1; i <= 50; i++) {
+            const btn = document.createElement("div");
+            btn.className = "filter-btn";
+            const fValue = filterList[i % filterList.length] + "(" + (i * 10) + "%)";
+            btn.innerText = "F" + i;
+            btn.onclick = () => applyFilter(fValue);
+            filterContainer.appendChild(btn);
+        }
+
+        window.applyFilter = (filter) => {
+            document.getElementById("local").style.filter = filter;
+            // ಬೇರೆಯವರಿಗೂ ಫಿಲ್ಟರ್ ಕಾಣಲು CSS ಬದಲಿಗೆ Canvas ಬಳಸಬೇಕಾಗುತ್ತದೆ, ಇದು ಸದ್ಯಕ್ಕೆ ಲೋಕಲ್ ಪ್ರಿವ್ಯೂಗಾಗಿ.
+        };
+
+        window.toggleFilters = () => {
+            const fc = document.getElementById("filters");
+            fc.style.display = fc.style.display === "none" ? "flex" : "none";
+        };
+
+        // 🔊 ಮಾತಾಡಿದರೆ ಮಿನುಗುವ ಲೈಟಿಂಗ್ ಎಫೆಕ್ಟ್
+        function setupAudioVisualizer(stream) {
+            const audioContext = new AudioContext();
+            const source = audioContext.createMediaStreamSource(stream);
+            const analyzer = audioContext.createAnalyser();
+            analyzer.fftSize = 256;
+            source.connect(analyzer);
+
+            const bufferLength = analyzer.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            const light = document.getElementById("lighting-edge");
+
+            function animate() {
+                analyzer.getByteFrequencyData(dataArray);
+                let sum = 0;
+                for (let i = 0; i < bufferLength; i++) sum += dataArray[i];
+                let average = sum / bufferLength;
+
+                if (average > 30) {
+                    light.style.border = (average/5) + "px solid hsl(" + average*2 + ", 100%, 50%)";
+                    light.style.boxShadow = "inset 0 0 20px hsl(" + average*2 + ", 100%, 50%)";
+                } else {
+                    light.style.border = "0px solid transparent";
+                    light.style.boxShadow = "none";
+                }
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        init();
     </script>
 </body>
 </html>
