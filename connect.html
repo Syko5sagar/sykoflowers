@@ -1,84 +1,16 @@
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, doc, setDoc, updateDoc, onSnapshot, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+<!DOCTYPE html>
+<html>
+<body style="background:black;color:white">
 
-const firebaseConfig = {
-  apiKey: "YOUR_KEY",
-  authDomain: "YOUR_DOMAIN",
-  projectId: "YOUR_ID"
-};
+<video id="local" autoplay muted></video>
+<video id="remote" autoplay></video>
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-const params = new URLSearchParams(window.location.search);
-const roomID = params.get("roomID");
-const mode = params.get("mode");
-
-const localVideo = document.getElementById("localVideo");
-const remoteVideo = document.getElementById("remoteVideo");
-
-let localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-
-localVideo.srcObject = localStream;
-
-const pc = new RTCPeerConnection({
-  iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
-});
-
-localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-
-pc.ontrack = e => {
-  remoteVideo.srcObject = e.streams[0];
-};
-
-pc.onicecandidate = async e => {
-  if (e.candidate) {
-    await updateDoc(doc(db, "rooms", roomID), {
-      candidates: arrayUnion(e.candidate.toJSON())
-    });
-  }
-};
-
-if (mode === "caller") {
-  const offer = await pc.createOffer();
-  await pc.setLocalDescription(offer);
-
-  await setDoc(doc(db, "rooms", roomID), {
-    offer: offer
-  });
-
-  onSnapshot(doc(db, "rooms", roomID), async snap => {
-    const data = snap.data();
-    if (data?.answer && !pc.currentRemoteDescription) {
-      await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-    }
-  });
-
-} else {
-  onSnapshot(doc(db, "rooms", roomID), async snap => {
-    const data = snap.data();
-
-    if (data?.offer && !pc.currentRemoteDescription) {
-      await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-
-      await updateDoc(doc(db, "rooms", roomID), {
-        answer: answer
-      });
-    }
-  });
-}
-
-// ICE LISTEN
-onSnapshot(doc(db, "rooms", roomID), async snap => {
-  const data = snap.data();
-  if (data?.candidates) {
-    data.candidates.forEach(c => {
-      pc.addIceCandidate(new RTCIceCandidate(c));
-    });
-  }
+<script>
+navigator.mediaDevices.getUserMedia({video:true,audio:true})
+.then(s=>{
+ document.getElementById("local").srcObject=s;
 });
 </script>
+
+</body>
+</html>
