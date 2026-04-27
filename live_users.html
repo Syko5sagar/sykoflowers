@@ -1,143 +1,174 @@
-<!DOCTYPE html>
-<html lang="kn">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RENT BF - Live</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <style>
-        body { background: #000; color: white; font-family: sans-serif; margin: 0; padding: 0; }
-        .header { background: #111; padding: 15px; border-bottom: 2px solid #32cd32; text-align: center; color: #32cd32; font-weight: bold; font-size: 20px; }
-        #userList { padding: 10px; }
-        .user-card { background: #111; margin-bottom: 10px; padding: 15px; border-radius: 15px; border: 1px solid #222; display: flex; align-items: center; justify-content: space-between; }
-        .user-info { display: flex; align-items: center; }
-        .user-info img { width: 50px; height: 50px; border-radius: 50%; border: 2px solid #32cd32; margin-right: 12px; }
-        .status-dot { height: 10px; width: 10px; background-color: #32cd32; border-radius: 50%; display: inline-block; margin-right: 5px; }
-        .btn { padding: 10px 15px; border-radius: 10px; border: none; cursor: pointer; color: white; font-size: 16px; margin-left: 5px; }
-        .chat-btn { background: #007bff; }
-        .call-btn { background: #32cd32; color: #000; }
-        
-        /* Incoming Call Pop-up */
-        .call-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; flex-direction: column; align-items: center; justify-content: center; }
-        .call-box { background: #111; padding: 30px; border-radius: 20px; border: 2px solid #32cd32; text-align: center; width: 80%; }
-    </style>
-</head>
-<body>
-
-    <div class="header">RENT BF - ಲೈವ್</div>
-    <div id="userList">ಬಳಕೆದಾರರನ್ನು ಹುಡುಕಲಾಗುತ್ತಿದೆ...</div>
-
-    <div class="call-overlay" id="incomingCallOverlay">
-        <div class="call-box">
-            <h2 id="callerName">ಯಾರೋ...</h2>
-            <p>ವಿಡಿಯೋ ಕಾಲ್ ಮಾಡುತ್ತಿದ್ದಾರೆ</p>
-            <button class="btn call-btn" id="acceptBtn">ಅಕ್ಸೆಪ್ಟ್</button>
-            <button class="btn" style="background:red;" id="rejectBtn">ರಿಜೆಕ್ಟ್</button>
-        </div>
-    </div>
-
 <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-    // ನಿಮ್ಮ ಫೈರ್‌ಬೇಸ್ ಕಾನ್ಫಿಗರೇಶನ್
-    const firebaseConfig = { 
-        apiKey: "AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ", 
-        authDomain: "sykolive-846a3.firebaseapp.com", 
-        projectId: "sykolive-846a3" 
-    };
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
+const firebaseConfig = {
+    apiKey: "AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
+    authDomain: "sykolive-846a3.firebaseapp.com",
+    projectId: "sykolive-846a3"
+};
 
-    let currentUID = null;
-    let myName = "User";
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
 
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            currentUID = user.uid;
-            // ಆನ್‌ಲೈನ್ ಎಂದು ತೋರಿಸಲು
-            updateDoc(doc(db, "users", user.uid), { isOnline: true }).catch(() => {
-                // ಒಂದು ವೇಳೆ ಡಾಕ್ಯುಮೆಂಟ್ ಇಲ್ಲದಿದ್ದರೆ ಎಸ್ಪೆಶಲಿ ಫಸ್ಟ್ ಟೈಮ್ ಸೆಟ್ ಮಾಡುವುದು
-                setDoc(doc(db, "users", user.uid), { uid: user.uid, name: user.displayName || "User", isOnline: true }, { merge: true });
-            });
-            
-            loadUsers();
-            listenForCalls();
-        } else {
-            window.location.href = "index.html";
-        }
+let currentUID = null;
+let myName = "User";
+
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        currentUID = user.uid;
+
+        updateDoc(doc(db, "users", user.uid), {
+            isOnline: true
+        }).catch(() => {
+            setDoc(doc(db, "users", user.uid), {
+                uid: user.uid,
+                name: user.displayName || "User",
+                isOnline: true
+            }, { merge: true });
+        });
+
+        loadUsers();
+        listenForCalls();
+    } else {
+        window.location.href = "index.html";
+    }
+});
+
+
+// 🔥 LOAD USERS (ONLY ONLINE USERS)
+function loadUsers() {
+    onSnapshot(collection(db, "users"), (snapshot) => {
+        const list = document.getElementById('userList');
+        list.innerHTML = "";
+
+        snapshot.forEach((uDoc) => {
+            const data = uDoc.data();
+
+            // ❌ skip self
+            if (data.uid === currentUID) {
+                myName = data.name;
+                return;
+            }
+
+            // ❌ only show online users
+            if (!data.isOnline) return;
+
+            const card = document.createElement('div');
+            card.className = 'user-card';
+
+            card.innerHTML = `
+                <div class="user-info" onclick="openProfile('${data.uid}')">
+                    <img src="${data.profilePic || 'https://via.placeholder.com/50'}">
+                    <div>
+                        <strong>${data.name}</strong><br>
+                        <small>Age: ${data.age || '-'} | ₹${data.rate || '-'}</small><br>
+                        <span style="color:#32cd32">
+                            <span class="status-dot"></span> Online
+                        </span>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button class="btn chat-btn" onclick="startChat('${data.uid}', '${data.name}')">
+                        <i class="fa-solid fa-message"></i>
+                    </button>
+
+                    <button class="btn call-btn" onclick="startCall('${data.uid}', '${data.name}')">
+                        <i class="fa-solid fa-video"></i>
+                    </button>
+
+                    <button class="btn" style="background:orange;color:black"
+                        onclick="bookUser('${data.uid}')">
+                        ₹
+                    </button>
+                </div>
+            `;
+
+            list.appendChild(card);
+        });
+    });
+}
+
+
+// 🎥 CALL
+window.startCall = async (targetUid, targetName) => {
+    const roomID = "ROOM_" + Math.floor(Math.random() * 1000000);
+
+    await setDoc(doc(db, "calls", targetUid), {
+        fromID: currentUID,
+        fromName: myName,
+        roomID,
+        status: "pending"
     });
 
-    function loadUsers() {
-        onSnapshot(collection(db, "users"), (snapshot) => {
-            const list = document.getElementById('userList');
-            list.innerHTML = "";
-            snapshot.forEach((uDoc) => {
-                const data = uDoc.data();
-                if (data.uid === currentUID) {
-                    myName = data.name;
-                } else {
-                    const card = document.createElement('div');
-                    card.className = 'user-card';
-                    card.innerHTML = `
-                        <div class="user-info">
-                            <img src="${data.profilePic || 'https://via.placeholder.com/50'}">
-                            <div>
-                                <strong>${data.name}</strong><br>
-                                <span style="color: ${data.isOnline ? '#32cd32' : '#888'}">
-                                    ${data.isOnline ? '<span class="status-dot"></span> ಆನ್‌ಲೈನ್' : 'ಆಫ್‌ಲೈನ್'}
-                                </span>
-                            </div>
-                        </div>
-                        <div class="actions">
-                            <button class="btn chat-btn" onclick="startChat('${data.uid}', '${data.name}')"><i class="fa-solid fa-message"></i></button>
-                            <button class="btn call-btn" onclick="startCall('${data.uid}', '${data.name}')"><i class="fa-solid fa-video"></i></button>
-                        </div>
-                    `;
-                    list.appendChild(card);
-                }
-            });
+    window.location.href =
+        `connect.html?mode=caller&roomID=${roomID}&targetName=${encodeURIComponent(targetName)}`;
+};
+
+
+// 💬 CHAT
+window.startChat = (targetUid, targetName) => {
+    const chatID = currentUID < targetUid
+        ? currentUID + "_" + targetUid
+        : targetUid + "_" + currentUID;
+
+    window.location.href =
+        `chat.html?chatID=${chatID}&targetName=${encodeURIComponent(targetName)}`;
+};
+
+
+// 💰 BOOKING
+window.bookUser = async (targetUid) => {
+    await setDoc(doc(db, "bookings", currentUID + "_" + targetUid), {
+        from: currentUID,
+        to: targetUid,
+        status: "pending",
+        time: Date.now()
+    });
+
+    alert("Booking Request Sent!");
+};
+
+
+// 👤 PROFILE VIEW
+window.openProfile = (uid) => {
+    window.location.href = `profile-view.html?uid=${uid}`;
+};
+
+
+// 📞 INCOMING CALL
+function listenForCalls() {
+    onSnapshot(doc(db, "calls", currentUID), (docSnap) => {
+        if (docSnap.exists() && docSnap.data().status === "pending") {
+
+            const data = docSnap.data();
+
+            document.getElementById('callerName').innerText = data.fromName;
+            document.getElementById('incomingCallOverlay').style.display = 'flex';
+
+            document.getElementById('acceptBtn').onclick = () => {
+                window.location.href =
+                    `connect.html?mode=receiver&roomID=${data.roomID}&targetName=${encodeURIComponent(data.fromName)}`;
+            };
+
+            document.getElementById('rejectBtn').onclick = async () => {
+                await deleteDoc(doc(db, "calls", currentUID));
+                document.getElementById('incomingCallOverlay').style.display = 'none';
+            };
+        }
+    });
+}
+
+
+// 🔴 OFFLINE FIX
+window.addEventListener("beforeunload", async () => {
+    if (currentUID) {
+        await updateDoc(doc(db, "users", currentUID), {
+            isOnline: false
         });
     }
-
-    // ವಿಡಿಯೋ ಕಾಲ್ ಕನೆಕ್ಟ್ ಲಾಜಿಕ್
-    window.startCall = async (targetUid, targetName) => {
-        const roomID = "ROOM_" + Math.floor(Math.random() * 1000000);
-        await setDoc(doc(db, "calls", targetUid), {
-            fromID: currentUID,
-            fromName: myName,
-            roomID: roomID,
-            status: "pending"
-        });
-        window.location.href = `connect.html?mode=caller&roomID=${roomID}&targetUid=${targetUid}&targetName=${encodeURIComponent(targetName)}&myName=${encodeURIComponent(myName)}`;
-    };
-
-    // ಚಾಟ್ ಕನೆಕ್ಟ್ ಲಾಜಿಕ್
-    window.startChat = (targetUid, targetName) => {
-        const chatID = currentUID < targetUid ? currentUID + "_" + targetUid : targetUid + "_" + currentUID;
-        window.location.href = `chat.html?chatID=${chatID}&targetName=${encodeURIComponent(targetName)}`;
-    };
-
-    // ಕಾಲ್ ಸ್ವೀಕರಿಸುವ ಲಾಜಿಕ್
-    function listenForCalls() {
-        onSnapshot(doc(db, "calls", currentUID), (docSnap) => {
-            if (docSnap.exists() && docSnap.data().status === "pending") {
-                const data = docSnap.data();
-                document.getElementById('callerName').innerText = data.fromName;
-                document.getElementById('incomingCallOverlay').style.display = 'flex';
-
-                document.getElementById('acceptBtn').onclick = () => {
-                    window.location.href = `connect.html?mode=receiver&roomID=${data.roomID}&targetUid=${currentUID}&targetName=${encodeURIComponent(data.fromName)}`;
-                };
-                document.getElementById('rejectBtn').onclick = async () => {
-                    await deleteDoc(doc(db, "calls", currentUID));
-                    document.getElementById('incomingCallOverlay').style.display = 'none';
-                };
-            }
-        });
-    }
+});
 </script>
-</body>
-</html>
