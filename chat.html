@@ -1,0 +1,33 @@
+<input id="msg" placeholder="Type message">
+<button onclick="send()">Send</button>
+<div id="chat"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+const app = initializeApp({ apiKey:"YOUR", authDomain:"YOUR", projectId:"YOUR" });
+const db = getFirestore(app);
+
+const params = new URLSearchParams(window.location.search);
+const chatID = params.get("chatID");
+
+const ref = collection(db, "chats", chatID, "messages");
+
+window.send = async () => {
+  const text = document.getElementById("msg").value;
+
+  await addDoc(ref, {
+    text,
+    time: Date.now()
+  });
+};
+
+onSnapshot(query(ref, orderBy("time")), snap => {
+  let html = "";
+  snap.forEach(doc => {
+    html += `<p>${doc.data().text}</p>`;
+  });
+  document.getElementById("chat").innerHTML = html;
+});
+</script>
