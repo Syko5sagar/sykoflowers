@@ -3,84 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rent bf/gf - Complete Update</title>
+    <title>Rent bf/gf - Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
         body { background: #000; color: white; padding-top: 85px; }
 
-        /* ಹಸಿರು ಬಾರ್ಡರ್ ಹೆಡರ್ */
+        /* ಹೆಡರ್ */
         .header { position: fixed; top: 0; width: 100%; background: #000; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #32cd32; z-index: 1000; }
         .app-name { font-size: 22px; color: #32cd32; font-weight: 800; font-style: italic; }
         
-        /* ಸೇವ್ ಆದ ನಂತರ ಬಲಭಾಗದಲ್ಲಿ ಕೂರುವ ನಿಮ್ಮ ಐಕಾನ್ */
-        .my-badge { display: none; align-items: center; gap: 10px; background: #111; padding: 5px 15px; border-radius: 25px; border: 1.5px solid #ff0000; cursor: pointer; }
+        /* ಸೇವ್ ಆದ ಮೇಲೆ ಕಾಣಿಸುವ ಬ್ಯಾಡ್ಜ್ */
+        .my-badge { display: none; align-items: center; gap: 10px; background: #111; padding: 5px 15px; border-radius: 25px; border: 1.5px solid #ff0000; }
         .my-badge img { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid #32cd32; }
         .my-badge span { font-size: 12px; color: #32cd32; font-weight: bold; }
 
-        /* ಅಪ್ಲೋಡ್ ಕಂಟೈನರ್ */
-        .container { width: 90%; max-width: 400px; margin: 20px auto; }
-        .upload-card { background: #111; padding: 30px; border-radius: 25px; border: 2px solid #32cd32; text-align: center; display: none; }
-        h2 { color: #ff0000; margin-bottom: 20px; text-transform: uppercase; font-size: 20px; }
+        .container { width: 95%; max-width: 400px; margin: 20px auto; }
 
-        .photo-area { width: 110px; height: 110px; background: #222; border: 2px dashed #ff0000; border-radius: 50%; margin: 0 auto 20px; display: flex; justify-content: center; align-items: center; cursor: pointer; overflow: hidden; }
-        .photo-area img { width: 100%; height: 100%; object-fit: cover; }
-        .photo-area i { font-size: 35px; color: #32cd32; }
+        /* ಪುಟ 1: ಅಪ್ಲೋಡ್ ಸೆಕ್ಷನ್ */
+        #setupSection { background: #111; padding: 30px; border-radius: 25px; border: 2px solid #32cd32; text-align: center; }
+        h2 { color: #ff0000; margin-bottom: 20px; text-transform: uppercase; font-size: 18px; }
+
+        .photo-area { width: 100px; height: 100px; background: #222; border: 2px dashed #ff0000; border-radius: 50%; margin: 0 auto 20px; display: flex; justify-content: center; align-items: center; cursor: pointer; overflow: hidden; position: relative; }
+        .photo-area img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
+        .photo-area i { font-size: 30px; color: #32cd32; }
 
         .input-box { margin-bottom: 15px; text-align: left; }
         .input-box label { display: block; color: #32cd32; font-size: 13px; margin-bottom: 5px; font-weight: bold; }
         .input-box input { width: 100%; padding: 12px; background: #000; border: 1px solid #ff0000; border-radius: 10px; color: white; outline: none; }
-        
-        .save-btn { width: 100%; padding: 15px; background: #32cd32; color: #000; border: none; border-radius: 12px; font-weight: 800; font-size: 18px; cursor: pointer; transition: 0.3s; margin-top: 10px; }
-        .save-btn:hover { background: #ff0000; color: white; }
 
-        /* ರಿಯಲ್ ಟೈಮ್ ಲಿಸ್ಟ್ ಸ್ಟೈಲ್ */
-        .list-feed { display: none; }
+        .save-btn { width: 100%; padding: 15px; background: #32cd32; color: #000; border: none; border-radius: 12px; font-weight: 800; font-size: 18px; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+        .save-btn:active { transform: scale(0.95); }
+
+        /* ಪುಟ 2: ನೆಕ್ಸ್ಟ್ ಪೇಜ್ (ಲಿಸ್ಟ್) - ಇದನ್ನು ಮೊದಲು ಹೈಡ್ ಮಾಡಲಾಗಿದೆ */
+        #nextPage { display: none; }
         .user-card { background: #0d0d0d; border: 1px solid #ff0000; border-radius: 20px; padding: 15px; margin-bottom: 15px; display: flex; align-items: center; gap: 15px; }
-        .u-pic { width: 65px; height: 65px; border-radius: 50%; border: 2px solid #32cd32; object-fit: cover; }
+        .u-pic { width: 60px; height: 60px; border-radius: 50%; border: 2px solid #32cd32; object-fit: cover; }
         .u-info { flex: 1; }
-        .u-info h3 { font-size: 17px; color: #fff; }
-        .u-info p { font-size: 14px; color: #32cd32; font-weight: bold; }
-        .book-btn { background: #ff0000; color: white; border: none; padding: 10px 18px; border-radius: 12px; font-size: 12px; font-weight: bold; cursor: pointer; }
+        .u-info h3 { font-size: 16px; color: #fff; }
+        .u-info p { font-size: 13px; color: #32cd32; font-weight: bold; }
+        .book-btn { background: #ff0000; color: white; border: none; padding: 8px 15px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <div class="header">
         <div class="app-name">Rent bf/gf</div>
-        <div class="my-badge" id="myBadge" onclick="location.reload()">
+        <div class="my-badge" id="myBadge">
             <img id="headPic" src="">
             <span id="headName">User</span>
         </div>
     </div>
 
     <div class="container">
-        <div class="upload-card" id="setupSection">
-            <h2>ಪ್ರೊಫೈಲ್ ಸೆಟ್ ಮಾಡಿ</h2>
+        <div id="setupSection">
+            <h2>ನಿಮ್ಮ ಪ್ರೊಫೈಲ್ ಸೆಟ್ ಮಾಡಿ</h2>
             <div class="photo-area" onclick="document.getElementById('fileInput').click()">
-                <i class="fa-solid fa-camera-retro" id="camIcon"></i>
+                <i class="fa-solid fa-camera" id="camIcon"></i>
                 <img id="previewImg" style="display:none;">
             </div>
             <input type="file" id="fileInput" style="display: none;" accept="image/*">
 
             <div class="input-box">
-                <label>ನಿಮ್ಮ ಹೆಸರು:</label>
-                <input type="text" id="userName" placeholder="ನಿಮ್ಮ ಹೆಸರನ್ನು ಬರೆಯಿರಿ">
+                <label>ಹೆಸರು:</label>
+                <input type="text" id="userName" placeholder="ಬರೆಯಿರಿ...">
             </div>
             <div class="input-box">
-                <label>ನಿಮ್ಮ ವಯಸ್ಸು:</label>
-                <input type="number" id="userAge" placeholder="ವಯಸ್ಸನ್ನು ಬರೆಯಿರಿ">
+                <label>ವಯಸ್ಸು:</label>
+                <input type="number" id="userAge" placeholder="ವಯಸ್ಸು...">
             </div>
             <div class="input-box">
-                <label>ದಿನದ ರೇಟ್ (Amount):</label>
-                <input type="number" id="userRate" placeholder="₹ ಮೊತ್ತ">
+                <label>ಅಮೌಂಟ್ (₹):</label>
+                <input type="number" id="userRate" placeholder="ಮೊತ್ತ ಹಾಕಿ...">
             </div>
-            <button class="save-btn" id="saveBtn">ಸೇವ್ ಮಾಡಿ</button>
+            <button class="save-btn" id="saveBtn">ಸೇವ್ ಮತ್ತು ಮುಂದುವರಿಯಿರಿ</button>
         </div>
 
-        <div class="list-feed" id="mainFeed">
-            <h4 style="color: #32cd32; margin-bottom: 15px; font-size: 14px;">LIVE PROFILES</h4>
+        <div id="nextPage">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h4 style="color: #32cd32;">ಲೈವ್ ಪ್ರೊಫೈಲ್‌ಗಳು</h4>
+                <span style="font-size: 10px; color: #666;">ರಿಯಲ್-ಟೈಮ್</span>
+            </div>
             <div id="usersList"></div>
         </div>
     </div>
@@ -99,17 +103,16 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        let userPhoto = "";
+        let base64Pic = "";
 
-        // ಫೋಟೋ ಅಪ್ಲೋಡ್ ರೀಡರ್
-        const fileInput = document.getElementById('fileInput');
-        fileInput.addEventListener('change', function() {
+        // ಫೋಟೋ ಆರಿಸಿಕೊಂಡಾಗ
+        document.getElementById('fileInput').addEventListener('change', function() {
             const file = this.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    userPhoto = e.target.result;
-                    document.getElementById('previewImg').src = userPhoto;
+                    base64Pic = e.target.result;
+                    document.getElementById('previewImg').src = base64Pic;
                     document.getElementById('previewImg').style.display = 'block';
                     document.getElementById('camIcon').style.display = 'none';
                 };
@@ -117,65 +120,60 @@
             }
         });
 
-        // ಲಾಗಿನ್ ಚೆಕ್
+        // ಲಾಗಿನ್ ಸ್ಟೇಟಸ್ ಚೆಕ್
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                const userSnap = await getDoc(doc(db, "users", user.uid));
-                if (userSnap.exists()) {
-                    loadApp(user, userSnap.data());
-                } else {
-                    document.getElementById('setupSection').style.display = 'block';
+                const snap = await getDoc(doc(db, "users", user.uid));
+                if (snap.exists()) {
+                    showNextPage(user, snap.data());
                 }
             } else { window.location.href = "index.html"; }
         });
 
-        // ಸೇವ್ ಬಟನ್
+        // ಸೇವ್ ಬಟನ್ ಕೆಲಸ
         document.getElementById('saveBtn').addEventListener('click', async () => {
             const user = auth.currentUser;
             const name = document.getElementById('userName').value;
             const age = document.getElementById('userAge').value;
             const rate = document.getElementById('userRate').value;
 
-            if (name && age && rate && userPhoto) {
+            if (name && age && rate && base64Pic) {
+                const data = { uid: user.uid, name, age, rate, profilePic: base64Pic };
                 try {
-                    await setDoc(doc(db, "users", user.uid), {
-                        uid: user.uid,
-                        name: name,
-                        age: age,
-                        rate: rate,
-                        profilePic: userPhoto
-                    });
-                    alert("ಸೇವ್ ಮಾಡಲಾಗಿದೆ!");
-                    location.reload();
-                } catch (e) { alert("Error: " + e.message); }
-            } else { alert("ದಯವಿಟ್ಟು ಫೋಟೋ ಮತ್ತು ವಿವರಗಳನ್ನು ಪೂರ್ತಿಗೊಳಿಸಿ!"); }
+                    await setDoc(doc(db, "users", user.uid), data);
+                    showNextPage(user, data); // ತಕ್ಷಣವೇ ನೆಕ್ಸ್ಟ್ ಪೇಜ್‌ಗೆ ಹೋಗಲು
+                } catch (err) { alert("Error: " + err.message); }
+            } else {
+                alert("ಫೋಟೋ ಸೇರಿದಂತೆ ಎಲ್ಲ ವಿವರ ತುಂಬಿರಿ!");
+            }
         });
 
-        function loadApp(me, myData) {
+        // ನೆಕ್ಸ್ಟ್ ಪೇಜ್ ತೋರಿಸುವ ಫಂಕ್ಷನ್
+        function showNextPage(me, myData) {
             document.getElementById('setupSection').style.display = 'none';
-            document.getElementById('mainFeed').style.display = 'block';
+            document.getElementById('nextPage').style.display = 'block';
             
             // ಹೆಡರ್ ಅಪ್‌ಡೇಟ್
             document.getElementById('myBadge').style.display = 'flex';
             document.getElementById('headPic').src = myData.profilePic;
             document.getElementById('headName').innerText = myData.name;
 
-            // ರಿಯಲ್ ಟೈಮ್ ಲಿಸ್ಟ್
+            // ಲೈವ್ ಲಿಸ್ಟ್ ಲೋಡ್ (ರಿಯಲ್ ಟೈಮ್)
             onSnapshot(collection(db, "users"), (snapshot) => {
                 const list = document.getElementById('usersList');
                 list.innerHTML = "";
                 snapshot.forEach((uDoc) => {
                     const u = uDoc.data();
-                    if (u.uid === me.uid) return;
+                    if (u.uid === me.uid) return; // ನಿಮ್ಮ ಪ್ರೊಫೈಲ್ ಲಿಸ್ಟ್‌ನಲ್ಲಿ ಕಾಣಿಸಲ್ಲ
 
                     list.innerHTML += `
                         <div class="user-card">
                             <img src="${u.profilePic}" class="u-pic">
                             <div class="u-info">
                                 <h3>${u.name}, ${u.age}</h3>
-                                <p>₹${u.rate} / Day</p>
+                                <p>₹${u.rate} / ದಿನಕ್ಕೆ</p>
                             </div>
-                            <button class="book-btn" onclick="alert('Booking Request Sent to ${u.name}')">ಬುಕ್ ಮಾಡಿ</button>
+                            <button class="book-btn">ಬುಕ್ ಮಾಡಿ</button>
                         </div>
                     `;
                 });
