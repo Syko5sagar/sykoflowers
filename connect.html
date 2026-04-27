@@ -9,58 +9,54 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-const firebaseConfig = {
- apiKey:"AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
- authDomain:"sykolive-846a3.firebaseapp.com",
+const app=initializeApp({
+ apiKey:"AIzaSy...",
  projectId:"sykolive-846a3"
-};
+});
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const db=getFirestore(app);
 
 const params=new URLSearchParams(location.search);
 const room=params.get("room");
-const isCaller=params.get("caller");
+const caller=params.get("caller");
 
 const pc=new RTCPeerConnection({
  iceServers:[{urls:"stun:stun.l.google.com:19302"}]
 });
 
-const localVideo=document.getElementById("local");
-const remoteVideo=document.getElementById("remote");
+const localStream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});
+local.srcObject=localStream;
 
-const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});
-localVideo.srcObject=stream;
-
-stream.getTracks().forEach(t=>pc.addTrack(t,stream));
+localStream.getTracks().forEach(track=>pc.addTrack(track,localStream));
 
 pc.ontrack=e=>{
- remoteVideo.srcObject=e.streams[0];
+ remote.srcObject=e.streams[0];
 };
 
 const roomRef=doc(db,"rooms",room);
-const candidatesRef=collection(db,"rooms",room,"candidates");
+const iceRef=collection(roomRef,"ice");
 
-// SEND ICE
+// ICE SEND
 pc.onicecandidate=e=>{
  if(e.candidate){
-  addDoc(candidatesRef,e.candidate.toJSON());
+  addDoc(iceRef,{candidate:e.candidate});
  }
 };
 
-// RECEIVE ICE
-onSnapshot(candidatesRef,snap=>{
- snap.docChanges().forEach(c=>{
-  if(c.type==="added"){
-   pc.addIceCandidate(new RTCIceCandidate(c.doc.data()));
+// ICE RECEIVE
+onSnapshot(iceRef,snap=>{
+ snap.docChanges().forEach(change=>{
+  if(change.type==="added"){
+   pc.addIceCandidate(change.doc.data().candidate);
   }
  });
 });
 
-if(isCaller){
+// CALLER
+if(caller){
+
  const offer=await pc.createOffer();
  await pc.setLocalDescription(offer);
-
  await setDoc(roomRef,{offer});
 
  onSnapshot(roomRef,async s=>{
@@ -69,10 +65,11 @@ if(isCaller){
    await pc.setRemoteDescription(data.answer);
   }
  });
-}else{
- const snap=await getDoc(roomRef);
- const data=snap.data();
 
+// RECEIVER
+}else{
+
+ const data=(await getDoc(roomRef)).data();
  await pc.setRemoteDescription(data.offer);
 
  const answer=await pc.createAnswer();
