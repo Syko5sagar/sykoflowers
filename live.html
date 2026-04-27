@@ -97,7 +97,7 @@ body{
  color:white;
 }
 
-/* ಹೊಸ ದೊಡ್ಡ ಕೆಂಪು ಬುಕಿಂಗ್ ಬಟನ್ */
+/* ಬುಕಿಂಗ್ ಬಟನ್ */
 .big-book-btn {
  width: 100%;
  background: #ff3b30;
@@ -180,7 +180,7 @@ onAuthStateChanged(auth,user=>{
  if(!user){location.href="index.html";return;}
  uid=user.uid;
 
- // USERS
+ // USERS LISTENER
  onSnapshot(collection(db,"users"),snap=>{
   let html="",count=0;
 
@@ -207,7 +207,7 @@ onAuthStateChanged(auth,user=>{
         </div>
       </div>
       
-      <button class="big-book-btn" onclick="bookUser('${u.name}','${u.rate}')">
+      <button class="big-book-btn" onclick="bookUser('${u.name}','${u.rate}','${u.uid}')">
         <i class="fa-solid fa-calendar-check"></i> BOOK NOW (₹${u.rate})
       </button>
     </div>`;
@@ -229,36 +229,49 @@ onAuthStateChanged(auth,user=>{
 
 });
 
-// CALL
+// BOOK FUNCTION (UPDATED)
+window.bookUser = async (targetName, rate, targetUid) => {
+  try {
+    const bookingId = "book_" + Date.now();
+    await setDoc(doc(db, "bookings", bookingId), {
+      bookerName: auth.currentUser.displayName || "User",
+      bookerId: uid,
+      targetName: targetName,
+      targetId: targetUid,
+      amount: rate,
+      time: new Date().toLocaleString(),
+      status: "Confirmed"
+    });
+    alert("Booking Successful for " + targetName);
+    // ಬುಕಿಂಗ್ ಆದ ಮೇಲೆ ಹಿಸ್ಟರಿ ಪೇಜ್‌ಗೆ ಹೋಗಲು ಕೆಳಗಿನ ಲೈನ್ ಬಳಸಬಹುದು
+    // location.href = "bookings.html";
+  } catch (error) {
+    console.error("Booking Error:", error);
+    alert("ಬುಕಿಂಗ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗುತ್ತಿಲ್ಲ, ದಯವಿಟ್ಟು ಪ್ರಯತ್ನಿಸಿ.");
+  }
+};
+
+// CALL FUNCTION
 window.callUser = async(id)=>{
  let room="room_"+Date.now();
-
  await setDoc(doc(db,"calls",id),{
   from:uid,
   room:room
  });
-
  location.href=`connect.html?room=${room}&caller=true`;
 };
 
-// CHAT
+// CHAT FUNCTION
 window.chatUser=(id,name)=>{
  location.href=`chat.html?id=${id}&name=${name}`;
 };
 
-// BOOK
-window.bookUser=(name,rate)=>{
- alert(name+" booking confirm ₹"+rate);
- // ಇಲ್ಲಿ ನಿಮ್ಮ ಬುಕಿಂಗ್ ಪೇಜ್ ಲಿಂಕ್ ಕೂಡ ಕೊಡಬಹುದು
- // location.href = `booking.html?name=${name}&rate=${rate}`;
-};
-
-// ACCEPT
+// ACCEPT CALL
 window.accept=()=>{
  location.href=`connect.html?room=${callData.room}`;
 };
 
-// REJECT
+// REJECT CALL
 window.reject=async()=>{
  await deleteDoc(doc(db,"calls",uid));
  document.getElementById("popup").style.display="none";
