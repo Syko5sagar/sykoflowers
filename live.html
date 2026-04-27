@@ -25,6 +25,7 @@ body{
  font-size:22px;
  font-weight:bold;
  border-bottom:1px solid #222;
+ z-index: 100;
 }
 
 .sub{
@@ -39,13 +40,19 @@ body{
 
 /* USER CARD */
 .user{
+ background:#111;
+ padding:12px;
+ margin-bottom:15px;
+ border-radius:15px;
+ display: flex;
+ flex-direction: column;
+ gap: 12px;
+}
+
+.top-section {
  display:flex;
  align-items:center;
  justify-content:space-between;
- background:#111;
- padding:12px;
- margin-bottom:10px;
- border-radius:15px;
 }
 
 .left{
@@ -73,10 +80,11 @@ body{
 /* BUTTONS */
 .actions button{
  border:none;
- padding:8px 10px;
+ padding:10px 12px;
  border-radius:10px;
  margin-left:5px;
  cursor:pointer;
+ font-size: 16px;
 }
 
 .call{
@@ -89,9 +97,27 @@ body{
  color:white;
 }
 
-.book{
- background:orange;
- color:black;
+/* ಹೊಸ ದೊಡ್ಡ ಕೆಂಪು ಬುಕಿಂಗ್ ಬಟನ್ */
+.big-book-btn {
+ width: 100%;
+ background: #ff3b30;
+ color: white;
+ border: none;
+ padding: 12px;
+ border-radius: 10px;
+ font-size: 18px;
+ font-weight: bold;
+ cursor: pointer;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ gap: 8px;
+ transition: 0.3s;
+}
+
+.big-book-btn:active {
+ transform: scale(0.98);
+ background: #cc2f26;
 }
 
 /* POPUP */
@@ -106,6 +132,7 @@ body{
  border-radius:15px;
  text-align:center;
  border:1px solid #333;
+ z-index: 1000;
 }
 
 #popup button{
@@ -126,7 +153,6 @@ body{
 
 <div id="list"></div>
 
-<!-- CALL POPUP -->
 <div id="popup">
 <h3 id="caller"></h3>
 <button onclick="accept()" style="background:#32cd32">Accept</button>
@@ -166,19 +192,24 @@ onAuthStateChanged(auth,user=>{
 
     html+=`
     <div class="user">
-      <div class="left">
-        <img src="${u.profilePic}">
-        <div>
-          <div class="name">${u.name}</div>
-          <div class="age">${u.age} yrs • ₹${u.rate}</div>
+      <div class="top-section">
+        <div class="left">
+          <img src="${u.profilePic}">
+          <div>
+            <div class="name">${u.name}</div>
+            <div class="age">${u.age} yrs • ₹${u.rate}</div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="chat" onclick="chatUser('${u.uid}','${u.name}')"><i class="fa-solid fa-message"></i></button>
+          <button class="call" onclick="callUser('${u.uid}')"><i class="fa-solid fa-video"></i></button>
         </div>
       </div>
-
-      <div class="actions">
-        <button class="chat" onclick="chatUser('${u.uid}','${u.name}')"><i class="fa-solid fa-message"></i></button>
-        <button class="call" onclick="callUser('${u.uid}')"><i class="fa-solid fa-video"></i></button>
-        <button class="book" onclick="bookUser('${u.name}','${u.rate}')">₹</button>
-      </div>
+      
+      <button class="big-book-btn" onclick="bookUser('${u.name}','${u.rate}')">
+        <i class="fa-solid fa-calendar-check"></i> BOOK NOW (₹${u.rate})
+      </button>
     </div>`;
    }
   });
@@ -217,7 +248,9 @@ window.chatUser=(id,name)=>{
 
 // BOOK
 window.bookUser=(name,rate)=>{
- alert(name+" booking ₹"+rate);
+ alert(name+" booking confirm ₹"+rate);
+ // ಇಲ್ಲಿ ನಿಮ್ಮ ಬುಕಿಂಗ್ ಪೇಜ್ ಲಿಂಕ್ ಕೂಡ ಕೊಡಬಹುದು
+ // location.href = `booking.html?name=${name}&rate=${rate}`;
 };
 
 // ACCEPT
