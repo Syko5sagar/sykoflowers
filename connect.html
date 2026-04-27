@@ -3,123 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RENT BF - Connecting</title>
+    <title>Secure Connect - RENT BF</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        body { background: #000; color: #32cd32; font-family: 'Poppins', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
-        .container { width: 90%; max-width: 400px; text-align: center; }
-        .loader { border: 4px solid #111; border-top: 4px solid #32cd32; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        body { background: #000; color: #32cd32; font-family: 'Poppins', sans-serif; height: 100vh; margin: 0; overflow: hidden; display: flex; flex-direction: column; }
+        #video-grid { flex: 1; background: #111; position: relative; }
+        .controls { height: 80px; background: #000; display: flex; justify-content: center; align-items: center; gap: 20px; border-top: 1px solid #222; }
+        .btn { width: 50px; height: 50px; border-radius: 50%; border: none; cursor: pointer; font-size: 20px; transition: 0.2s; display: flex; align-items: center; justify-content: center; }
+        .hangup { background: #ff0000; color: white; }
+        .mute { background: #444; color: white; }
+        .chat-toggle { background: #007bff; color: white; }
+        .btn:active { transform: scale(0.9); }
+        
+        /* Timer Design */
+        .timer { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.8); padding: 8px 18px; border-radius: 30px; color: #ff3e3e; font-weight: bold; z-index: 10; border: 1px solid #ff3e3e; font-size: 14px; }
+        
+        /* Status Message */
+        .loading-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 200; }
+        .loader { border: 4px solid #111; border-top: 4px solid #32cd32; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 20px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        .timer-box { font-size: 24px; color: #ff0000; font-weight: bold; margin-top: 10px; display: none; }
-        
-        /* ಪೇಮೆಂಟ್ ಮೋಡಲ್ ಸ್ಟೈಲ್ */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; flex-direction: column; align-items: center; justify-content: center; }
-        .payment-card { background: #111; padding: 25px; border-radius: 20px; border: 2px solid #32cd32; width: 85%; text-align: center; }
-        .pay-btn { background: #32cd32; color: #000; border: none; padding: 12px 25px; border-radius: 10px; font-weight: bold; font-size: 16px; margin-top: 15px; cursor: pointer; display: block; width: 100%; text-decoration: none; }
-        
-        .controls { position: fixed; bottom: 30px; display: none; gap: 20px; width: 100%; justify-content: center; z-index: 999; }
-        .control-btn { width: 50px; height: 50px; border-radius: 50%; border: none; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .mute-btn { background: #555; color: white; }
-        .hangup-btn { background: #ff0000; color: white; }
-        
-        #jitsi-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: none; }
+
+        /* Payment Overlay */
+        .pay-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.95); z-index: 150; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .pay-card { background: #111; padding: 35px; border-radius: 25px; border: 2px solid #32cd32; width: 85%; max-width: 350px; }
+        .pay-btn { background: #32cd32; color: #000; padding: 15px; display: block; text-decoration: none; border-radius: 12px; font-weight: bold; font-size: 16px; margin-top: 20px; }
     </style>
 </head>
 <body>
 
-    <div class="container" id="init-ui">
+    <div class="loading-screen" id="loadingScreen">
         <div class="loader"></div>
-        <div id="status" class="msg">ಪ್ರೊಸೆಸಿಂಗ್ ಮಾಡಲಾಗುತ್ತಿದೆ...</div>
-        <div id="countdown" class="timer-box">10 ಸೆಕೆಂಡ್ ಬಾಕಿ ಇದೆ</div>
+        <div id="loadingStatus">ಸಂಪರ್ಕಿಸಲಾಗುತ್ತಿದೆ...</div>
     </div>
 
-    <div id="jitsi-container"></div>
-
-    <div class="controls" id="call-controls">
-        <button class="control-btn mute-btn" id="mute-toggle" onclick="toggleAudio()"><i class="fa-solid fa-microphone"></i></button>
-        <button class="control-btn hangup-btn" onclick="endCall()"><i class="fa-solid fa-phone-slash"></i></button>
+    <div id="video-grid">
+        <div class="timer" id="freeTimer" style="display:none;">05:00 ಫ್ರೀ ಸಮಯ</div>
+        <div id="jitsi-container" style="height: 100%; width: 100%;"></div>
     </div>
 
-    <div class="modal" id="paymentModal">
-        <div class="payment-card">
-            <h3 style="color: #fff;">ಉಚಿತ ಸಮಯ ಮುಗಿದಿದೆ!</h3>
-            <p style="color: #ccc; font-size: 13px;">ಮುಂದೆ ವೀಕ್ಷಿಸಲು ₹5 ಪಾವತಿಸಿ.</p>
-            <a href="upi://pay?pa=sagarbssagarbs231@oksbi&pn=Sagar&am=5&cu=INR" class="pay-btn" onclick="paymentDone()">PAY ₹5 (UPI)</a>
-            <button onclick="endCall()" style="background: none; border: none; color: #888; margin-top: 15px; cursor: pointer;">ಕಾಲ್ ಕಟ್ ಮಾಡಿ</button>
+    <div class="pay-overlay" id="payOverlay">
+        <div class="pay-card">
+            <i class="fa-solid fa-lock" style="font-size: 40px; margin-bottom: 15px;"></i>
+            <h3>ಫ್ರೀ ಟೈಮ್ ಮುಗಿದಿದೆ!</h3>
+            <p>ವಿಡಿಯೋ ಮುಂದುವರಿಸಲು ₹5 ಪಾವತಿಸಿ</p>
+            <a href="upi://pay?pa=sagarbssagarbs231@oksbi&pn=Sagar&am=5&cu=INR" class="pay-btn" onclick="resumeCall()">PAY NOW ₹5</a>
+            <button onclick="exitCall()" style="background:none; border:none; color:#ff4d4d; margin-top:20px; font-weight: bold; cursor: pointer;">EXIT</button>
         </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn mute" onclick="toggleMute()"><i class="fa-solid fa-microphone" id="micIcon"></i></button>
+        <button class="btn chat-toggle" onclick="toggleChat()"><i class="fa-solid fa-comments"></i></button>
+        <button class="btn hangup" onclick="exitCall()"><i class="fa-solid fa-phone-slash"></i></button>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        const firebaseConfig = { apiKey: "AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ", authDomain: "sykolive-846a3.firebaseapp.com", projectId: "sykolive-846a3" };
+        const firebaseConfig = { 
+            apiKey: "AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ", 
+            authDomain: "sykolive-846a3.firebaseapp.com", 
+            projectId: "sykolive-846a3" 
+        };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
         const params = new URLSearchParams(window.location.search);
-        const type = params.get('type');
+        const type = params.get('type'); // call or chat
+        const mode = params.get('mode'); // caller or receiver
         const targetUid = params.get('targetUid');
-        const targetName = params.get('targetName');
-        const myName = params.get('myName');
+        const roomID = params.get('roomID') || "ROOM_" + Math.random().toString(36).substring(7);
 
         let api = null;
         let isMuted = false;
 
-        async function init() {
-            if (type === 'call') {
-                document.getElementById('status').innerText = targetName + " ಅವರಿಗೆ ಕಾಲ್ ರೆಡಿ ಆಗುತ್ತಿದೆ...";
-                startVideoCall();
-            } else {
-                document.getElementById('status').innerText = "ಚಾಟ್ ಬಾಕ್ಸ್ ತೆರೆಯಲಾಗುತ್ತಿದೆ...";
-                setTimeout(() => { alert("ಚಾಟ್ ಉಚಿತವಾಗಿದೆ!"); window.location.href = "live-user.html"; }, 2000);
+        async function startConnection() {
+            // ಕಾಲ್ ಮೋಡ್ ಆಗಿದ್ದರೆ ಫೈರ್ಬೇಸ್ ಅಪ್ಡೇಟ್
+            if (type === 'call' && mode === 'caller') {
+                await setDoc(doc(db, "calls", targetUid), {
+                    fromName: params.get('myName'),
+                    roomID: roomID,
+                    status: "pending",
+                    time: Date.now()
+                });
             }
-        }
 
-        async function startVideoCall() {
-            const roomID = "RENTBF_" + Math.random().toString(36).substring(7);
-            
-            // Firebase ಗೆ ಮಾಹಿತಿ ರವಾನೆ
-            await setDoc(doc(db, "calls", targetUid), {
-                fromName: myName, roomID: roomID, status: "incoming", time: Date.now()
-            });
-
-            // Jitsi Meet External API ಲೋಡ್ ಮಾಡುವುದು
             const script = document.createElement('script');
             script.src = "https://meet.jit.si/external_api.js";
             script.onload = () => {
                 const options = {
                     roomName: roomID,
-                    width: '100%',
-                    height: '100%',
                     parentNode: document.querySelector('#jitsi-container'),
-                    configOverwrite: { startWithAudioMuted: false, prejoinPageEnabled: false },
-                    interfaceConfigOverwrite: { TOOLBAR_BUTTONS: [] } // ಕಸ್ಟಮ್ ಕಂಟ್ರೋಲ್ಸ್ ಬಳಸಲು ಹಳೆಯ ಬಟನ್ ಹೈಡ್ ಮಾಡಿದ್ದೇವೆ
+                    configOverwrite: {
+                        prejoinPageEnabled: false,
+                        startWithAudioMuted: (type === 'chat'),
+                        startWithVideoMuted: (type === 'chat')
+                    },
+                    interfaceConfigOverwrite: {
+                        TOOLBAR_BUTTONS: ['chat'] // ಕೇವಲ ಚಾಟ್ ಅಷ್ಟೇ ಇರಲಿ, ಉಳಿದದ್ದು ನಮ್ಮ ಕಸ್ಟಮ್ ಬಟನ್
+                    }
                 };
-                
+
                 api = new JitsiMeetExternalAPI("meet.jit.si", options);
-                
-                document.getElementById('init-ui').style.display = 'none';
-                document.getElementById('jitsi-container').style.display = 'block';
-                document.getElementById('call-controls').style.display = 'flex';
-                
-                startFreeTimer();
+
+                api.addEventListener('videoConferenceJoined', () => {
+                    document.getElementById('loadingScreen').style.display = 'none';
+                    if (type === 'call') {
+                        document.getElementById('freeTimer').style.display = 'block';
+                        startTimer();
+                    } else {
+                        document.getElementById('freeTimer').style.display = 'block';
+                        document.getElementById('freeTimer').innerText = "FREE CHAT ACTIVE";
+                        document.getElementById('freeTimer').style.color = "#007bff";
+                    }
+                });
             };
             document.head.appendChild(script);
         }
 
-        function startFreeTimer() {
-            let timeLeft = 10;
-            const timerDiv = document.getElementById('countdown');
-            timerDiv.style.display = 'block';
-
+        function startTimer() {
+            let totalSeconds = 300; // 5 ನಿಮಿಷ
+            const timerEl = document.getElementById('freeTimer');
             const interval = setInterval(() => {
-                timeLeft--;
-                timerDiv.innerText = timeLeft + " ಸೆಕೆಂಡ್ ಬಾಕಿ ಇದೆ";
+                totalSeconds--;
+                let mins = Math.floor(totalSeconds / 60);
+                let secs = totalSeconds % 60;
+                timerEl.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')} ಫ್ರೀ ಸಮಯ`;
                 
-                if (timeLeft <= 0) {
+                if (totalSeconds <= 0) {
                     clearInterval(interval);
                     showPayment();
                 }
@@ -127,34 +140,37 @@
         }
 
         function showPayment() {
-            // ವಿಡಿಯೋ ಮತ್ತು ಆಡಿಯೋ ತಾತ್ಕಾಲಿಕ ಮ್ಯೂಟ್ ಮಾಡುವುದು
+            document.getElementById('payOverlay').style.display = 'flex';
             api.executeCommand('toggleAudio');
             api.executeCommand('toggleVideo');
-            document.getElementById('paymentModal').style.display = 'flex';
         }
 
-        window.toggleAudio = () => {
+        window.toggleMute = () => {
             api.executeCommand('toggleAudio');
             isMuted = !isMuted;
-            document.getElementById('mute-toggle').innerHTML = isMuted ? 
-                '<i class="fa-solid fa-microphone-slash"></i>' : '<i class="fa-solid fa-microphone"></i>';
+            document.getElementById('micIcon').className = isMuted ? 'fa-solid fa-microphone-slash' : 'fa-solid fa-microphone';
         };
 
-        window.endCall = () => {
+        window.toggleChat = () => {
+            api.executeCommand('toggleChat');
+        };
+
+        window.resumeCall = () => {
+            alert("ಪಾವತಿ ಕ್ಲಿಕ್ ಮಾಡಲಾಗಿದೆ. ಕಾಲ್ ಮುಂದುವರಿಯುತ್ತಿದೆ.");
+            document.getElementById('payOverlay').style.display = 'none';
+            api.executeCommand('toggleAudio');
+            api.executeCommand('toggleVideo');
+            document.getElementById('freeTimer').innerText = "PREMIUM ACTIVE";
+            document.getElementById('freeTimer').style.color = "#32cd32";
+        };
+
+        window.exitCall = async () => {
             if(api) api.dispose();
+            if(targetUid && mode === 'caller') await deleteDoc(doc(db, "calls", targetUid));
             window.location.href = "live-user.html";
         };
 
-        window.paymentDone = () => {
-            // ಪೇಮೆಂಟ್ ಕ್ಲಿಕ್ ಮಾಡಿದ ನಂತರ ಅನ್-ಮ್ಯೂಟ್ ಮಾಡಿ ಮುಂದುವರಿಸುವುದು
-            alert("ಪೇಮೆಂಟ್ ಪ್ರೊಸೆಸಿಂಗ್... ಕಾಲ್ ಮುಂದುವರಿಯುತ್ತಿದೆ.");
-            document.getElementById('paymentModal').style.display = 'none';
-            api.executeCommand('toggleAudio');
-            api.executeCommand('toggleVideo');
-            document.getElementById('countdown').innerText = "Premium Call Active";
-        };
-
-        init();
+        startConnection();
     </script>
 </body>
 </html>
