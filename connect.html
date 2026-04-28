@@ -13,11 +13,13 @@ video{position:absolute;width:100%;height:100%;object-fit:cover}
 width:110px;height:150px;
 position:absolute;top:20px;right:20px;
 border-radius:10px;border:2px solid #fff;
+z-index:10;
 }
 
 .controls{
 position:absolute;bottom:30px;width:100%;
 display:flex;justify-content:center;gap:20px;
+z-index:10;
 }
 
 button{
@@ -71,11 +73,9 @@ const params = new URLSearchParams(location.search);
 const roomId = params.get("room");
 const isCaller = params.get("caller") === "true";
 
-const roomRef = doc(db,"rooms",roomId);
+const roomRef = doc(db,"calls",roomId);
 
-// =======================
-// 🎥 START CAMERA
-// =======================
+// ================= CAMERA =================
 async function init(){
 
 localStream = await navigator.mediaDevices.getUserMedia({
@@ -93,61 +93,51 @@ pc.ontrack = (event)=>{
 document.getElementById("remote").srcObject = event.streams[0];
 };
 
-// =======================
-// 🔥 ICE FIX (SAFE QUEUE)
-// =======================
-let iceQueue = [];
-
+// ================= ICE =================
 pc.onicecandidate = async(event)=>{
 if(event.candidate){
-await addDoc(collection(roomRef,"candidates"),{
-candidate:event.candidate.toJSON(),
-sender:isCaller ? "caller" : "callee"
+await addDoc(collection(roomRef,
+isCaller ? "callerCandidates" : "calleeCandidates"
+),{
+candidate:event.candidate.toJSON()
 });
 }
 };
 
-// =======================
-// 📞 CALLER SIDE
-// =======================
+// ================= CALLER =================
 if(isCaller){
 
 const offer = await pc.createOffer();
 await pc.setLocalDescription(offer);
 
 await setDoc(roomRef,{
-offer:offer
-});
+offer:offer,
+status:"calling"
+},{merge:true});
 
 // answer listener
 onSnapshot(roomRef,(snap)=>{
 const data = snap.data();
-if(data?.answer){
+if(data?.answer && !pc.currentRemoteDescription){
 pc.setRemoteDescription(new RTCSessionDescription(data.answer));
 }
 });
 
-// candidates listener
-onSnapshot(collection(roomRef,"candidates"),(snap)=>{
+// callee candidates
+onSnapshot(collection(roomRef,"calleeCandidates"),snap=>{
 snap.docChanges().forEach(c=>{
 if(c.type==="added"){
-const data = c.doc.data();
-
-if(data.sender!=="caller"){
-pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-}
+pc.addIceCandidate(new RTCIceCandidate(c.doc.data().candidate));
 }
 });
 });
 
 }
 
-// =======================
-// 📞 RECEIVER SIDE
-// =======================
+// ================= RECEIVER =================
 else{
 
-onSnapshot(roomRef, async(snap)=>{
+onSnapshot(roomRef,async(snap)=>{
 const data = snap.data();
 
 if(data?.offer && !pc.currentRemoteDescription){
@@ -158,21 +148,17 @@ const answer = await pc.createAnswer();
 await pc.setLocalDescription(answer);
 
 await setDoc(roomRef,{
-...data,
-answer:answer
-});
+answer:answer,
+status:"connected"
+},{merge:true});
 }
 });
 
-// candidates listener
-onSnapshot(collection(roomRef,"candidates"),(snap)=>{
+// caller candidates
+onSnapshot(collection(roomRef,"callerCandidates"),snap=>{
 snap.docChanges().forEach(c=>{
 if(c.type==="added"){
-const data = c.doc.data();
-
-if(data.sender!=="callee"){
-pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-}
+pc.addIceCandidate(new RTCIceCandidate(c.doc.data().candidate));
 }
 });
 });
@@ -182,9 +168,7 @@ pc.addIceCandidate(new RTCIceCandidate(data.candidate));
 
 init();
 
-// =======================
-// 🔄 SWITCH CAMERA
-// =======================
+// ================= SWITCH CAMERA =================
 window.switchCamera = async()=>{
 
 useFront = !useFront;
@@ -204,9 +188,7 @@ if(sender) sender.replaceTrack(track);
 document.getElementById("local").srcObject = localStream;
 };
 
-// =======================
-// 📞 END CALL
-// =======================
+// ================= END CALL =================
 window.endCall = async()=>{
 
 if(localStream){
