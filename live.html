@@ -32,6 +32,7 @@ background:#111;margin:10px;padding:10px;border-radius:10px;
 
 .btn{
 padding:5px 8px;margin:3px;border:none;border-radius:5px;color:#fff;
+cursor:pointer;
 }
 .chat{background:green}
 .call{background:blue}
@@ -53,10 +54,19 @@ padding:5px 8px;margin:3px;border:none;border-radius:5px;color:#fff;
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, onSnapshot, doc, updateDoc, setDoc } 
-from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { getAuth, onAuthStateChanged } 
-from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import {
+getFirestore,
+collection,
+onSnapshot,
+doc,
+updateDoc,
+setDoc
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+import {
+getAuth,
+onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const app = initializeApp({
 apiKey:"AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
@@ -69,16 +79,22 @@ const auth = getAuth(app);
 
 let uid;
 
+// ================= LOGIN =================
 onAuthStateChanged(auth, async(user)=>{
-if(!user){ location.href="index.html"; return; }
+if(!user){
+location.href="index.html";
+return;
+}
 
-uid=user.uid;
+uid = user.uid;
 
-await updateDoc(doc(db,"users",uid),{
+// online update
+await setDoc(doc(db,"users",uid),{
 isOnline:true,
 lastSeen:Date.now()
-}).catch(()=>{});
+},{merge:true});
 
+// heartbeat
 setInterval(()=>{
 updateDoc(doc(db,"users",uid),{
 lastSeen:Date.now(),
@@ -86,15 +102,19 @@ isOnline:true
 }).catch(()=>{});
 },30000);
 
+// profile
 onSnapshot(doc(db,"users",uid),(s)=>{
 let u=s.data();
 if(!u) return;
+
 document.getElementById("myName").innerText = u.name || "User";
 document.getElementById("myDp").src = u.profilePic || "https://via.placeholder.com/50";
 });
 
+// users list
 onSnapshot(collection(db,"users"),(snap)=>{
-let html="",c=0;
+let html="";
+let c=0;
 
 snap.forEach(d=>{
 let u=d.data();
@@ -104,46 +124,61 @@ let online = u.lastSeen && (Date.now()-u.lastSeen < 120000);
 if(d.id !== uid && online){
 c++;
 
-html+=`
+html += `
 <div class="user">
 <img src="${u.profilePic || 'https://via.placeholder.com/40'}" width="40">
-${u.name} - ₹${u.rate}
+${u.name || "User"} - ₹${u.rate || 0}
 <br>
 
-<button class="btn chat" onclick="chatUser('${d.id}','${u.name}')">Chat</button>
+<button class="btn chat" onclick="chatUser('${d.id}','${u.name || "User"}')">Chat</button>
 <button class="btn call" onclick="callUser('${d.id}')">Call</button>
-<button class="btn book" onclick="bookUser('${u.name}','${u.rate}','${d.id}')">Book</button>
+<button class="btn book" onclick="bookUser('${u.name || "User"}','${u.rate || 0}','${d.id}')">Book</button>
 </div>`;
 }
 });
 
-document.getElementById("list").innerHTML=html;
-document.getElementById("count").innerText=c+" users online";
+document.getElementById("list").innerHTML = html;
+document.getElementById("count").innerText = c + " users online";
 });
 
 });
 
+// ================= CHAT =================
 window.chatUser = (id,name)=>{
-location.href="chat.html?id="+id+"&name="+encodeURIComponent(name);
+location.href="chat.html?id="+id+"&name="+encodeURIComponent(name || "User");
 };
 
-// 🔥 ONLY FIXED LINE (404 ISSUE SOLVED)
+// ================= CALL (FIXED 404 ISSUE) =================
 window.callUser = async(id)=>{
 
-let room=[uid,id].sort().join("_");
+if(!uid || !id) return;
 
+// safe room
+let room = [uid,id].sort().join("_");
+
+try{
 await setDoc(doc(db,"calls",room),{
 caller:uid,
 receiver:id,
 status:"calling",
 time:Date.now()
-});
+},{merge:true});
+}catch(e){
+console.log("call error",e);
+return;
+}
 
-location.href="connect.html?room="+room+"&caller=true"; // ✅ FIXED
+/*
+🔥 IMPORTANT FIX:
+connect.html MUST exist in same folder
+*/
+location.href = "connect.html?room=" + room + "&caller=true";
 };
 
+// ================= BOOK =================
 window.bookUser = async(name,rate,id)=>{
 
+try{
 await setDoc(doc(db,"bookings","b_"+Date.now()),{
 bookerId:uid,
 targetId:id,
@@ -154,6 +189,11 @@ time:Date.now()
 });
 
 alert("Booking Sent 🔥");
+
+}catch(e){
+alert("Booking failed");
+}
+
 };
 
 </script>
