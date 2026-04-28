@@ -1,7 +1,9 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, getDoc } 
+from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } 
+from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const app = initializeApp({
  apiKey:"AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
@@ -21,11 +23,11 @@ onAuthStateChanged(auth, async (user)=>{
   return;
  }
 
- uid=user.uid;
+ uid = user.uid;
 
- const params=new URLSearchParams(location.search);
- otherId=params.get("id");
- const otherName=params.get("name");
+ const params = new URLSearchParams(location.search);
+ otherId = params.get("id");
+ const otherName = params.get("name");
 
  if(!otherId){
   alert("Invalid chat");
@@ -33,76 +35,92 @@ onAuthStateChanged(auth, async (user)=>{
   return;
  }
 
- // 🔥 SAFE HEADER FIX
- const header = document.querySelector(".header");
- if(header){
-  header.innerText = "💬 " + (otherName || "Chat");
- }
-
- // 🔥 LOAD OTHER USER PROFILE (NAME + DP)
- try{
-  const snap = await getDoc(doc(db,"users",otherId));
-  if(snap.exists()){
-   const u = snap.data();
-
-   // 👉 if you have image + name element add here
-   if(document.getElementById("chatName")){
-    document.getElementById("chatName").innerText = u.name;
-   }
-   if(document.getElementById("chatDp")){
-    document.getElementById("chatDp").src = u.profilePic || "";
-   }
-  }
- }catch(e){
-  console.log("Profile load error",e);
- }
-
- // 🔥 UNIQUE CHAT ID
  chatId = [uid, otherId].sort().join("_");
+
+ // 🔥 LOAD OTHER USER + STATUS
+ loadUserHeader(otherId, otherName);
 
  loadMessages();
 });
 
-// 📩 LOAD
+
+// 👤 PROFILE + ONLINE STATUS
+async function loadUserHeader(id, fallbackName){
+
+ try{
+  const snap = await getDoc(doc(db,"users",id));
+
+  if(snap.exists()){
+   const u = snap.data();
+
+   document.querySelector(".header").innerText = "💬 " + (u.name || fallbackName);
+
+   // name
+   if(document.getElementById("chatName")){
+    document.getElementById("chatName").innerText = u.name;
+   }
+
+   // dp
+   if(document.getElementById("chatDp")){
+    document.getElementById("chatDp").src = u.profilePic || "https://via.placeholder.com/50";
+   }
+
+   // 🔥 LIVE ONLINE STATUS
+   if(document.getElementById("status")){
+    const isOnline = u.lastSeen && (Date.now() - u.lastSeen < 2 * 60 * 1000);
+
+    document.getElementById("status").innerText = isOnline ? "🟢 Online" : "⚫ Offline";
+   }
+  }
+
+ }catch(e){
+  console.log(e);
+ }
+}
+
+
+// 📩 LOAD MESSAGES (REAL TIME)
 function loadMessages(){
 
  if(unsubscribe) unsubscribe();
 
- const q=query(
+ const q = query(
   collection(db,"chats",chatId,"messages"),
   orderBy("time")
  );
 
- unsubscribe = onSnapshot(q,snap=>{
+ unsubscribe = onSnapshot(q,(snap)=>{
   let html="";
 
   snap.forEach(d=>{
-   let m=d.data();
+   let m = d.data();
 
-   html+=`
+   html += `
    <div class="msg ${m.sender===uid?'me':'other'}">
     ${m.text}
    </div>`;
   });
 
-  const msgBox = document.getElementById("messages");
-  msgBox.innerHTML = html;
+  const box = document.getElementById("messages");
+  box.innerHTML = html;
 
-  // ✅ FIXED SCROLL
   setTimeout(()=>{
-   msgBox.scrollTop = msgBox.scrollHeight;
+   box.scrollTop = box.scrollHeight;
   },100);
+
  });
 }
 
-// ✉ SEND
+
+// ✉ SEND MESSAGE
 window.sendMsg = async ()=>{
- const input=document.getElementById("msg");
- const text=input.value.trim();
+
+ const input = document.getElementById("msg");
+ const text = input.value.trim();
 
  if(!text) return;
 
- input.value="";
+ input.value = "";
 
  await addDoc(collection(db,"chats",chatId,"messages"),{
   text:text,
@@ -112,8 +130,12 @@ window.sendMsg = async ()=>{
  });
 };
 
-// ⌨ ENTER SEND
-document.getElementById("msg").addEventListener("keypress",e=>{
- if(e.key==="Enter") sendMsg();
+
+// ⌨ ENTER KEY
+document.getElementById("msg").addEventListener("keypress",(e)=>{
+ if(e.key==="Enter"){
+  sendMsg();
+ }
 });
+
 </script>
