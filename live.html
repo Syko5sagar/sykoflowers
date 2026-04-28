@@ -14,7 +14,6 @@
       margin: 0;
     }
 
-    /* 🔥 HEADER */
     .header {
       background: linear-gradient(45deg,#ff0066,#ff6600);
       padding: 15px;
@@ -23,13 +22,11 @@
       font-weight: bold;
     }
 
-    /* 🔥 TOP USER PROFILE */
     .top-profile {
       display: flex;
       align-items: center;
       padding: 10px;
       background: #1a1a1a;
-      border-bottom: 1px solid #333;
     }
 
     .top-profile img {
@@ -37,11 +34,6 @@
       height: 45px;
       border-radius: 50%;
       margin-right: 10px;
-    }
-
-    .top-profile .name {
-      font-size: 16px;
-      font-weight: bold;
     }
 
     #count {
@@ -60,7 +52,6 @@
     .top {
       display: flex;
       justify-content: space-between;
-      align-items: center;
     }
 
     .left {
@@ -68,36 +59,30 @@
       align-items: center;
     }
 
-    img {
+    .left img {
       width: 55px;
       height: 55px;
       border-radius: 50%;
       margin-right: 10px;
     }
 
-    .price {
-      color: #ff4081;
-      font-size: 14px;
-    }
-
     button {
       border: none;
-      padding: 8px 10px;
+      padding: 8px;
       border-radius: 6px;
       margin-left: 5px;
       cursor: pointer;
     }
 
-    .chat { background: #28a745; color: #fff; }
-    .call { background: #007bff; color: #fff; }
+    .chat { background: green; color: white; }
+    .call { background: blue; color: white; }
 
     .book {
       width: 100%;
       margin-top: 10px;
-      padding: 12px;
-      font-size: 16px;
-      background: linear-gradient(45deg,#ff0066,#ff6600);
-      color: #fff;
+      padding: 10px;
+      background: #ff0066;
+      color: white;
       font-weight: bold;
     }
 
@@ -108,7 +93,6 @@
       right: 20px;
       background: #222;
       padding: 15px;
-      border-radius: 10px;
       display: none;
       text-align: center;
     }
@@ -117,15 +101,14 @@
 
 <body>
 
-<div class="header">🔥 RENT GF / BF ONLINE 🔥</div>
+<div class="header">🔥 RENT GF/BF 🔥</div>
 
-<!-- 🔥 CURRENT USER PROFILE -->
 <div class="top-profile">
-  <img id="myDp" src="https://via.placeholder.com/50">
-  <div class="name" id="myName">Loading...</div>
+  <img id="myDp">
+  <div id="myName">Loading...</div>
 </div>
 
-<div id="count">Loading...</div>
+<div id="count"></div>
 <div id="list"></div>
 
 <div id="popup">
@@ -136,7 +119,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -156,29 +139,31 @@ onAuthStateChanged(auth, async (user) => {
 
  uid = user.uid;
 
- // 🔥 TOP PROFILE SET
+ // 🔥 top profile
  document.getElementById("myName").innerText = user.displayName || "User";
  document.getElementById("myDp").src = user.photoURL || "https://via.placeholder.com/50";
 
- // 🔥 SAVE USER
+ // 🔥 save user (NO uid field inside)
  await setDoc(doc(db, "users", uid), {
-  uid,
   name: user.displayName || "User",
   profilePic: user.photoURL || "",
   age: 20,
   rate: 50,
   isOnline: true,
   lastSeen: serverTimestamp()
- }, { merge: true });
+ });
 
- // 🔥 USER LIST
- onSnapshot(collection(db, "users"), (snap) => {
+ // 🔥 only online users
+ const q = query(collection(db, "users"), where("isOnline", "==", true));
+
+ onSnapshot(q, (snap) => {
   let html = "", count = 0;
 
   snap.forEach((d) => {
    let u = d.data();
 
-   if(d.id !== uid && u.isOnline) {
+   // ✅ THIS IS MAIN FIX
+   if(d.id !== uid) {
     count++;
 
     html += `
@@ -188,7 +173,7 @@ onAuthStateChanged(auth, async (user) => {
           <img src="${u.profilePic || 'https://via.placeholder.com/50'}">
           <div>
             <div>${u.name}</div>
-            <div class="price">₹${u.rate}/min</div>
+            <div>₹${u.rate}/min</div>
           </div>
         </div>
 
@@ -199,49 +184,51 @@ onAuthStateChanged(auth, async (user) => {
       </div>
 
       <button class="book" onclick="bookUser('${u.name}','${u.rate}','${d.id}')">
-        💖 BOOK NOW (₹${u.rate})
+        💖 BOOK NOW
       </button>
     </div>`;
    }
   });
 
-  document.getElementById("list").innerHTML = html;
+  document.getElementById("list").innerHTML = html || "No users online";
   document.getElementById("count").innerText = count + " ONLINE";
  });
 
- // 🔥 CALL LISTENER
+ // call listener
  onSnapshot(doc(db, "calls", uid), (snap) => {
   if(snap.exists()){
    callData = snap.data();
    document.getElementById("popup").style.display = "block";
-   document.getElementById("caller").innerText = "📞 Incoming Call...";
+   document.getElementById("caller").innerText = "Incoming Call...";
   }
  });
 });
 
-// باقي functions same
-window.bookUser = async (name, rate, targetUid) => {
- let id = "book_" + Date.now();
- await setDoc(doc(db, "bookings", id), {
+// booking
+window.bookUser = async (name, rate, id) => {
+ let bid = "book_" + Date.now();
+ await setDoc(doc(db, "bookings", bid), {
   user: uid,
-  target: targetUid,
+  target: id,
   name,
-  amount: rate,
-  time: new Date().toLocaleString()
+  amount: rate
  });
  alert("Booked " + name);
 };
 
+// call
 window.callUser = async(id) => {
  let room = "room_" + Date.now();
  await setDoc(doc(db, "calls", id), { from: uid, room });
  location.href = `connect.html?room=${room}&caller=true`;
 };
 
+// chat
 window.chatUser = (id, name) => {
  location.href = `chat.html?id=${id}&name=${name}`;
 };
 
+// accept/reject
 window.accept = () => {
  location.href = `connect.html?room=${callData.room}`;
 };
