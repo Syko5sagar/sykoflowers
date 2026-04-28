@@ -7,11 +7,62 @@
 
 <style>
 body{background:#000;color:#fff;font-family:Poppins;margin:0}
-.header{background:linear-gradient(45deg,#ff0066,#ff6600);padding:15px;text-align:center;font-weight:bold}
-.top{display:flex;align-items:center;padding:10px;background:#111}
-.top img{width:45px;height:45px;border-radius:50%;margin-right:10px}
-.user{background:#111;margin:10px;padding:10px;border-radius:10px}
-.btn{padding:5px 8px;margin:3px;border:none;border-radius:5px;color:#fff;cursor:pointer}
+
+.header{
+background:linear-gradient(45deg,#ff0066,#ff6600);
+padding:15px;
+text-align:center;
+font-weight:bold;
+}
+
+.top{
+display:flex;
+align-items:center;
+padding:10px;
+background:#111;
+}
+
+.top img{
+width:45px;
+height:45px;
+border-radius:50%;
+margin-right:10px;
+object-fit:cover;
+border:2px solid #fff;
+}
+
+.user{
+background:#111;
+margin:10px;
+padding:10px;
+border-radius:10px;
+display:flex;
+align-items:center;
+justify-content:space-between;
+}
+
+.user-left{
+display:flex;
+align-items:center;
+gap:10px;
+}
+
+.user img{
+width:40px;
+height:40px;
+border-radius:50%;
+object-fit:cover;
+}
+
+.btn{
+padding:5px 8px;
+margin:3px;
+border:none;
+border-radius:5px;
+color:#fff;
+cursor:pointer;
+}
+
 .chat{background:green}
 .call{background:blue}
 .book{background:#ff0066;width:100%;margin-top:5px}
@@ -24,7 +75,7 @@ body{background:#000;color:#fff;font-family:Poppins;margin:0}
 
 <div class="top">
 <img id="myDp">
-<div id="myName"></div>
+<div id="myName">Loading...</div>
 </div>
 
 <div id="count"></div>
@@ -47,7 +98,7 @@ getAuth,
 onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-// 🔥 FIREBASE CONFIG
+// 🔥 FIREBASE
 const firebaseConfig = {
 apiKey:"AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
 authDomain:"sykolive-846a3.firebaseapp.com",
@@ -66,12 +117,13 @@ if(!user){ location.href="index.html"; return; }
 
 uid = user.uid;
 
-// online
+// user online update
 await setDoc(doc(db,"users",uid),{
 isOnline:true,
 lastSeen:Date.now()
 },{merge:true});
 
+// heartbeat
 setInterval(()=>{
 updateDoc(doc(db,"users",uid),{
 lastSeen:Date.now(),
@@ -79,32 +131,54 @@ isOnline:true
 });
 },30000);
 
-// users list
+// 🔥 MY PROFILE (FIX DP)
+onSnapshot(doc(db,"users",uid),(s)=>{
+let u = s.data();
+if(!u) return;
+
+document.getElementById("myName").innerText = u.name || "User";
+document.getElementById("myDp").src =
+u.profilePic || "https://via.placeholder.com/50";
+});
+
+// USERS LIST (WITH DP FIX)
 onSnapshot(collection(db,"users"),(snap)=>{
+
 let html="";
-let c=0;
+let count=0;
 
 snap.forEach(d=>{
-let u=d.data();
+let u = d.data();
+
 let online = u.lastSeen && (Date.now()-u.lastSeen < 120000);
 
 if(d.id !== uid && online){
-c++;
+count++;
 
 html += `
 <div class="user">
-${u.name || "User"}
-<br>
+
+<div class="user-left">
+<img src="${u.profilePic || 'https://via.placeholder.com/40'}">
+<div>
+<b>${u.name || "User"}</b><br>
+₹${u.rate || 0}
+</div>
+</div>
+
+<div>
 <button class="btn chat" onclick="chatUser('${d.id}')">Chat</button>
 <button class="btn call" onclick="callUser('${d.id}')">Call</button>
-<button class="btn book">Book</button>
+</div>
+
 </div>`;
 }
 });
 
 document.getElementById("list").innerHTML = html;
-document.getElementById("count").innerText = c + " users online";
+document.getElementById("count").innerText = count + " users online";
 });
+
 });
 
 // ================= CHAT =================
@@ -112,7 +186,7 @@ window.chatUser = (id)=>{
 location.href="chat.html?id="+id;
 };
 
-// ================= CALL FIX =================
+// ================= CALL (FIXED ONLY FLOW) =================
 window.callUser = async(id)=>{
 
 let room = [uid,id].sort().join("_");
@@ -124,6 +198,7 @@ status:"calling",
 createdAt:Date.now()
 },{merge:true});
 
+// 🔥 OPEN CONNECT
 location.href =
 "connect.html?room="+room+
 "&id="+uid+
