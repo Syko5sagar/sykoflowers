@@ -8,19 +8,23 @@
 <style>
 body{background:#000;margin:0;overflow:hidden}
 video{position:absolute;width:100%;height:100%;object-fit:cover}
+
 #local{
- width:110px;height:150px;
- position:absolute;top:20px;right:20px;
- border-radius:10px;border:2px solid #fff;
+width:110px;height:150px;
+position:absolute;top:20px;right:20px;
+border-radius:10px;border:2px solid #fff;
 }
+
 .controls{
- position:absolute;bottom:30px;width:100%;
- display:flex;justify-content:center;gap:20px;
+position:absolute;bottom:30px;width:100%;
+display:flex;justify-content:center;gap:20px;
 }
+
 button{
- width:60px;height:60px;border-radius:50%;
- border:none;font-size:20px;
+width:60px;height:60px;border-radius:50%;
+border:none;font-size:20px;
 }
+
 .end{background:red;color:#fff;}
 .action{background:#333;color:#fff;}
 </style>
@@ -32,158 +36,193 @@ button{
 <video id="local" autoplay playsinline muted></video>
 
 <div class="controls">
- <button class="action" onclick="switchCamera()">🔄</button>
- <button class="end" onclick="endCall()">📞</button>
+<button class="action" onclick="switchCamera()">🔄</button>
+<button class="end" onclick="endCall()">📞</button>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import {
+getFirestore,
+doc,
+setDoc,
+onSnapshot,
+collection,
+addDoc,
+deleteDoc
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const app = initializeApp({
- apiKey:"AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
- authDomain:"sykolive-846a3.firebaseapp.com",
- projectId:"sykolive-846a3"
+apiKey:"AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
+authDomain:"sykolive-846a3.firebaseapp.com",
+projectId:"sykolive-846a3"
 });
 
 const db = getFirestore(app);
 
 const pc = new RTCPeerConnection({
- iceServers:[{urls:"stun:stun.l.google.com:19302"}]
+iceServers:[{urls:"stun:stun.l.google.com:19302"}]
 });
 
 let localStream;
 let useFront = true;
 
-// URL params
 const params = new URLSearchParams(location.search);
 const roomId = params.get("room");
 const isCaller = params.get("caller") === "true";
 
 const roomRef = doc(db,"rooms",roomId);
 
-// 🔥 CLEANUP FUNCTION
-async function cleanup(){
- try{
-  await deleteDoc(roomRef);
- }catch(e){}
+// =======================
+// 🎥 START CAMERA
+// =======================
+async function init(){
+
+localStream = await navigator.mediaDevices.getUserMedia({
+video:true,
+audio:true
+});
+
+document.getElementById("local").srcObject = localStream;
+
+localStream.getTracks().forEach(track=>{
+pc.addTrack(track, localStream);
+});
+
+pc.ontrack = (event)=>{
+document.getElementById("remote").srcObject = event.streams[0];
+};
+
+// =======================
+// 🔥 ICE FIX (SAFE QUEUE)
+// =======================
+let iceQueue = [];
+
+pc.onicecandidate = async(event)=>{
+if(event.candidate){
+await addDoc(collection(roomRef,"candidates"),{
+candidate:event.candidate.toJSON(),
+sender:isCaller ? "caller" : "callee"
+});
+}
+};
+
+// =======================
+// 📞 CALLER SIDE
+// =======================
+if(isCaller){
+
+const offer = await pc.createOffer();
+await pc.setLocalDescription(offer);
+
+await setDoc(roomRef,{
+offer:offer
+});
+
+// answer listener
+onSnapshot(roomRef,(snap)=>{
+const data = snap.data();
+if(data?.answer){
+pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+}
+});
+
+// candidates listener
+onSnapshot(collection(roomRef,"candidates"),(snap)=>{
+snap.docChanges().forEach(c=>{
+if(c.type==="added"){
+const data = c.doc.data();
+
+if(data.sender!=="caller"){
+pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+}
+}
+});
+});
+
 }
 
-// 🎥 INIT
-async function init(){
- try{
-  localStream = await navigator.mediaDevices.getUserMedia({
-   video:true,
-   audio:true
-  });
+// =======================
+// 📞 RECEIVER SIDE
+// =======================
+else{
 
-  local.srcObject = localStream;
+onSnapshot(roomRef, async(snap)=>{
+const data = snap.data();
 
-  localStream.getTracks().forEach(track=>{
-   pc.addTrack(track, localStream);
-  });
+if(data?.offer && !pc.currentRemoteDescription){
 
-  pc.ontrack = e=>{
-   remote.srcObject = e.streams[0];
-  };
+await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
 
-  // ICE
-  pc.onicecandidate = e=>{
-   if(e.candidate){
-    addDoc(collection(roomRef, isCaller ? "callerCandidates" : "calleeCandidates"), e.candidate.toJSON());
-   }
-  };
+const answer = await pc.createAnswer();
+await pc.setLocalDescription(answer);
 
-  if(isCaller){
+await setDoc(roomRef,{
+...data,
+answer:answer
+});
+}
+});
 
-   const offer = await pc.createOffer();
-   await pc.setLocalDescription(offer);
+// candidates listener
+onSnapshot(collection(roomRef,"candidates"),(snap)=>{
+snap.docChanges().forEach(c=>{
+if(c.type==="added"){
+const data = c.doc.data();
 
-   await setDoc(roomRef,{
-    offer:{type:offer.type,sdp:offer.sdp}
-   });
+if(data.sender!=="callee"){
+pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+}
+}
+});
+});
+}
 
-   onSnapshot(roomRef, async(snap)=>{
-    const data = snap.data();
-    if(data?.answer && !pc.currentRemoteDescription){
-     await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-    }
-   });
-
-   onSnapshot(collection(roomRef,"calleeCandidates"),snap=>{
-    snap.docChanges().forEach(c=>{
-     if(c.type==="added"){
-      pc.addIceCandidate(new RTCIceCandidate(c.doc.data()));
-     }
-    });
-   });
-
-  } else {
-
-   onSnapshot(roomRef, async(snap)=>{
-    const data = snap.data();
-
-    if(data?.offer && !pc.currentRemoteDescription){
-     await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-
-     const answer = await pc.createAnswer();
-     await pc.setLocalDescription(answer);
-
-     await updateDoc(roomRef,{
-      answer:{type:answer.type,sdp:answer.sdp}
-     });
-    }
-   });
-
-   onSnapshot(collection(roomRef,"callerCandidates"),snap=>{
-    snap.docChanges().forEach(c=>{
-     if(c.type==="added"){
-      pc.addIceCandidate(new RTCIceCandidate(c.doc.data()));
-     }
-    });
-   });
-
-  }
-
- }catch(e){
-  alert("Camera error");
- }
 }
 
 init();
 
+// =======================
 // 🔄 SWITCH CAMERA
-window.switchCamera = async ()=>{
- useFront = !useFront;
+// =======================
+window.switchCamera = async()=>{
 
- localStream.getTracks().forEach(t=>t.stop());
+useFront = !useFront;
 
- localStream = await navigator.mediaDevices.getUserMedia({
-  video:{facingMode: useFront ? "user" : "environment"},
-  audio:true
- });
+localStream.getTracks().forEach(t=>t.stop());
 
- const videoTrack = localStream.getVideoTracks()[0];
- const sender = pc.getSenders().find(s=>s.track.kind==="video");
+localStream = await navigator.mediaDevices.getUserMedia({
+video:{facingMode:useFront?"user":"environment"},
+audio:true
+});
 
- if(sender) sender.replaceTrack(videoTrack);
+const track = localStream.getVideoTracks()[0];
+const sender = pc.getSenders().find(s=>s.track.kind==="video");
 
- local.srcObject = localStream;
+if(sender) sender.replaceTrack(track);
+
+document.getElementById("local").srcObject = localStream;
 };
 
+// =======================
 // 📞 END CALL
-window.endCall = async ()=>{
- if(localStream){
-  localStream.getTracks().forEach(t=>t.stop());
- }
+// =======================
+window.endCall = async()=>{
 
- await cleanup(); // 🔥 DELETE ROOM
+if(localStream){
+localStream.getTracks().forEach(t=>t.stop());
+}
 
- location.href="live.html";
+try{
+await deleteDoc(roomRef);
+}catch(e){}
+
+location.href="live.html";
 };
 
-// 🔥 AUTO CLEANUP IF TAB CLOSED
-window.addEventListener("beforeunload",cleanup);
+window.addEventListener("beforeunload",async()=>{
+try{ await deleteDoc(roomRef); }catch(e){}
+});
 
 </script>
 
