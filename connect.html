@@ -20,9 +20,11 @@ top:50%;
 left:50%;
 transform:translate(-50%,-50%);
 text-align:center;
-background:rgba(0,0,0,0.7);
+background:rgba(0,0,0,0.75);
 padding:20px;
 border-radius:15px;
+display:none;
+z-index:20;
 }
 
 button{
@@ -55,19 +57,40 @@ border-radius:10px;
 object-fit:cover;
 z-index:10;
 }
+
+#controls{
+position:absolute;
+bottom:20px;
+left:50%;
+transform:translateX(-50%);
+z-index:15;
+}
+
+.ctrlBtn{
+background:#222;
+color:#fff;
+padding:10px;
+border-radius:50%;
+margin:5px;
+}
 </style>
 </head>
 
 <body>
 
 <div id="ringBox">
-<h2 id="statusText">Waiting...</h2>
+<h2 id="statusText">Incoming Call...</h2>
 <button class="accept" onclick="acceptCall()">Accept</button>
 <button class="reject" onclick="rejectCall()">Reject</button>
 </div>
 
 <video id="remote" autoplay playsinline></video>
 <video id="local" autoplay playsinline muted></video>
+
+<div id="controls">
+<button class="ctrlBtn" onclick="switchCamera()">🔄</button>
+<button class="ctrlBtn" onclick="endCall()">❌</button>
+</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -82,7 +105,6 @@ collection,
 addDoc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// 🔥 FIREBASE CONFIG
 const app = initializeApp({
 apiKey:"YOUR_API_KEY",
 authDomain:"YOUR_AUTH",
@@ -91,61 +113,55 @@ projectId:"YOUR_PROJECT_ID"
 
 const db = getFirestore(app);
 
-// ================= ROOM =================
 const params = new URLSearchParams(location.search);
 
 const roomId = params.get("room");
-const myId = params.get("id");   // A or B
-const role = params.get("role"); // caller / receiver
+const myId = params.get("id");
+const role = params.get("role");
+const to = params.get("to");
 
 const roomRef = doc(db,"calls",roomId);
 
-// ================= PEER =================
 const pc = new RTCPeerConnection({
 iceServers:[{urls:"stun:stun.l.google.com:19302"}]
 });
 
 let localStream;
+let facingMode = "user";
 
-// ================= LISTEN CALL =================
+// ================= SHOW ONLY RECEIVER POPUP =================
 onSnapshot(roomRef,(snap)=>{
 const data = snap.data();
-
 if(!data) return;
 
-// incoming call
-if(data.status === "calling" && role==="receiver"){
+// 🔥 IMPORTANT FIX: only receiver sees popup
+if(role === "receiver" && data.status === "calling"){
+document.getElementById("ringBox").style.display="block";
 document.getElementById("statusText").innerText =
-"📞 Incoming call from " + data.caller;
+"📞 Call from " + data.caller;
 }
 
-// accepted
-if(data.status === "accepted"){
-document.getElementById("ringBox").style.display="none";
-startCall();
-}
-
-// rejected
 if(data.status === "rejected"){
-alert("Call Ended");
-location.reload();
+location.href="live.html";
+}
+
+if(data.status === "ended"){
+location.href="live.html";
 }
 });
 
-// ================= CALL INIT (A SIDE) =================
+// ================= CALLER START =================
 async function startCaller(){
 
 localStream = await navigator.mediaDevices.getUserMedia({
-video:true,audio:true
+video:{facingMode},
+audio:true
 });
 
 document.getElementById("local").srcObject = localStream;
 
-localStream.getTracks().forEach(track=>{
-pc.addTrack(track, localStream);
-});
+localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));
 
-// ICE
 pc.onicecandidate = async(e)=>{
 if(e.candidate){
 await addDoc(collection(roomRef,"candidates"),{
@@ -154,46 +170,40 @@ candidate:e.candidate.toJSON()
 }
 };
 
-// OFFER
 const offer = await pc.createOffer();
 await pc.setLocalDescription(offer);
 
 await setDoc(roomRef,{
-caller: myId,
-receiver: params.get("to"),
+caller:myId,
+receiver:to,
 status:"calling",
-offer: offer
+offer:offer
 });
 
-// ANSWER LISTEN
-onSnapshot(roomRef, async(snap)=>{
+onSnapshot(roomRef,async(snap)=>{
 const data = snap.data();
-
 if(data?.answer && !pc.currentRemoteDescription){
 await pc.setRemoteDescription(data.answer);
 }
 });
 
-// REMOTE STREAM
 pc.ontrack = (e)=>{
 document.getElementById("remote").srcObject = e.streams[0];
 };
 }
 
-// ================= CALL START (B SIDE) =================
-async function startCall(){
+// ================= RECEIVER START =================
+async function startReceiver(){
 
 localStream = await navigator.mediaDevices.getUserMedia({
-video:true,audio:true
+video:{facingMode},
+audio:true
 });
 
 document.getElementById("local").srcObject = localStream;
 
-localStream.getTracks().forEach(track=>{
-pc.addTrack(track, localStream);
-});
+localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));
 
-// ICE
 pc.onicecandidate = async(e)=>{
 if(e.candidate){
 await addDoc(collection(roomRef,"candidates"),{
@@ -202,7 +212,6 @@ candidate:e.candidate.toJSON()
 }
 };
 
-// OFFER → ANSWER
 const snap = await getDoc(roomRef);
 const data = snap.data();
 
@@ -213,12 +222,11 @@ const answer = await pc.createAnswer();
 await pc.setLocalDescription(answer);
 
 await updateDoc(roomRef,{
-answer: answer,
+answer:answer,
 status:"accepted"
 });
 }
 
-// remote video
 pc.ontrack = (e)=>{
 document.getElementById("remote").srcObject = e.streams[0];
 };
@@ -226,17 +234,33 @@ document.getElementById("remote").srcObject = e.streams[0];
 
 // ================= ACCEPT =================
 window.acceptCall = async()=>{
-await updateDoc(roomRef,{
-status:"accepted"
-});
+document.getElementById("ringBox").style.display="none";
+await updateDoc(roomRef,{status:"accepted"});
+startReceiver();
 };
 
 // ================= REJECT =================
 window.rejectCall = async()=>{
-await updateDoc(roomRef,{
-status:"rejected"
-});
+await updateDoc(roomRef,{status:"rejected"});
 location.href="live.html";
+};
+
+// ================= END CALL =================
+window.endCall = async()=>{
+await updateDoc(roomRef,{status:"ended"});
+location.href="live.html";
+};
+
+// ================= CAMERA SWITCH =================
+window.switchCamera = async()=>{
+facingMode = (facingMode === "user") ? "environment" : "user";
+
+if(localStream){
+localStream.getTracks().forEach(t=>t.stop());
+}
+
+if(role === "caller") startCaller();
+else startReceiver();
 };
 
 // ================= AUTO START =================
