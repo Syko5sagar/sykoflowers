@@ -65,7 +65,7 @@ cursor:pointer;
 
 .chat{background:green}
 .call{background:blue}
-.book{background:#ff0066;width:100%;margin-top:5px}
+.book{background:#ff0066;margin-top:5px;width:100%}
 </style>
 </head>
 
@@ -98,7 +98,7 @@ getAuth,
 onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-// 🔥 FIREBASE
+// 🔥 FIREBASE CONFIG
 const firebaseConfig = {
 apiKey:"AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
 authDomain:"sykolive-846a3.firebaseapp.com",
@@ -113,11 +113,14 @@ let uid;
 
 // ================= LOGIN =================
 onAuthStateChanged(auth, async(user)=>{
-if(!user){ location.href="index.html"; return; }
+if(!user){
+location.href="index.html";
+return;
+}
 
 uid = user.uid;
 
-// user online update
+// 🔥 ONLINE STATUS
 await setDoc(doc(db,"users",uid),{
 isOnline:true,
 lastSeen:Date.now()
@@ -128,10 +131,10 @@ setInterval(()=>{
 updateDoc(doc(db,"users",uid),{
 lastSeen:Date.now(),
 isOnline:true
-});
+}).catch(()=>{});
 },30000);
 
-// 🔥 MY PROFILE (FIX DP)
+// 🔥 PROFILE FIX (DP)
 onSnapshot(doc(db,"users",uid),(s)=>{
 let u = s.data();
 if(!u) return;
@@ -141,7 +144,7 @@ document.getElementById("myDp").src =
 u.profilePic || "https://via.placeholder.com/50";
 });
 
-// USERS LIST (WITH DP FIX)
+// ================= USERS LIST =================
 onSnapshot(collection(db,"users"),(snap)=>{
 
 let html="";
@@ -169,6 +172,7 @@ html += `
 <div>
 <button class="btn chat" onclick="chatUser('${d.id}')">Chat</button>
 <button class="btn call" onclick="callUser('${d.id}')">Call</button>
+<button class="btn book" onclick="bookUser('${d.id}','${u.name}','${u.rate}')">Book</button>
 </div>
 
 </div>`;
@@ -186,11 +190,12 @@ window.chatUser = (id)=>{
 location.href="chat.html?id="+id;
 };
 
-// ================= CALL (FIXED ONLY FLOW) =================
+// ================= 🔥 CALL FIXED =================
 window.callUser = async(id)=>{
 
 let room = [uid,id].sort().join("_");
 
+// create call
 await setDoc(doc(db,"calls",room),{
 caller:uid,
 receiver:id,
@@ -198,12 +203,27 @@ status:"calling",
 createdAt:Date.now()
 },{merge:true});
 
-// 🔥 OPEN CONNECT
+// open connect page
 location.href =
 "connect.html?room="+room+
 "&id="+uid+
 "&role=caller"+
 "&to="+id;
+};
+
+// ================= 🔥 BOOKING FIX =================
+window.bookUser = async(id,name,rate)=>{
+
+await setDoc(doc(db,"bookings","b_"+Date.now()),{
+bookerId:uid,
+targetId:id,
+targetName:name,
+amount:rate,
+status:"pending",
+time:Date.now()
+});
+
+alert("Booking Sent 🔥");
 };
 
 </script>
