@@ -6,7 +6,13 @@
 <title>Video Call</title>
 
 <style>
-body{background:#000;color:#fff;margin:0;font-family:sans-serif}
+body{
+background:#000;
+color:#fff;
+margin:0;
+font-family:sans-serif;
+overflow:hidden;
+}
 
 #ringBox{
 position:absolute;
@@ -14,6 +20,9 @@ top:50%;
 left:50%;
 transform:translate(-50%,-50%);
 text-align:center;
+background:rgba(0,0,0,0.7);
+padding:20px;
+border-radius:15px;
 }
 
 button{
@@ -32,16 +41,19 @@ position:absolute;
 width:100%;
 height:100%;
 object-fit:cover;
+background:#000;
 }
 
 #local{
-width:110px;
-height:150px;
+width:120px;
+height:160px;
 position:absolute;
 top:20px;
 right:20px;
 border:2px solid #fff;
 border-radius:10px;
+object-fit:cover;
+z-index:10;
 }
 </style>
 </head>
@@ -49,8 +61,7 @@ border-radius:10px;
 <body>
 
 <div id="ringBox">
-<h2 id="statusText">Incoming Call...</h2>
-
+<h2 id="statusText">Waiting...</h2>
 <button class="accept" onclick="acceptCall()">Accept</button>
 <button class="reject" onclick="rejectCall()">Reject</button>
 </div>
@@ -64,73 +75,68 @@ import {
 getFirestore,
 doc,
 setDoc,
-onSnapshot,
+getDoc,
 updateDoc,
-deleteDoc,
+onSnapshot,
 collection,
 addDoc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+// 🔥 FIREBASE CONFIG
 const app = initializeApp({
-apiKey:"AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
-authDomain:"sykolive-846a3.firebaseapp.com",
-projectId:"sykolive-846a3"
+apiKey:"YOUR_API_KEY",
+authDomain:"YOUR_AUTH",
+projectId:"YOUR_PROJECT_ID"
 });
 
 const db = getFirestore(app);
 
+// ================= ROOM =================
+const params = new URLSearchParams(location.search);
+
+const roomId = params.get("room");
+const myId = params.get("id");   // A or B
+const role = params.get("role"); // caller / receiver
+
+const roomRef = doc(db,"calls",roomId);
+
+// ================= PEER =================
 const pc = new RTCPeerConnection({
 iceServers:[{urls:"stun:stun.l.google.com:19302"}]
 });
 
 let localStream;
 
-const params = new URLSearchParams(location.search);
-const roomId = params.get("room");
-
-const roomRef = doc(db,"calls",roomId);
-
-// ================= CHECK CALL STATUS =================
+// ================= LISTEN CALL =================
 onSnapshot(roomRef,(snap)=>{
 const data = snap.data();
 
-// 🔥 CALLING STATE (ringing)
-if(data?.status === "calling"){
+if(!data) return;
+
+// incoming call
+if(data.status === "calling" && role==="receiver"){
 document.getElementById("statusText").innerText =
-"📞 Call from: " + data.caller;
+"📞 Incoming call from " + data.caller;
 }
 
-// 🔥 ACCEPTED STATE
-if(data?.status === "accepted"){
+// accepted
+if(data.status === "accepted"){
 document.getElementById("ringBox").style.display="none";
 startCall();
 }
+
+// rejected
+if(data.status === "rejected"){
+alert("Call Ended");
+location.reload();
+}
 });
 
-// ================= ACCEPT =================
-window.acceptCall = async()=>{
-
-await updateDoc(roomRef,{
-status:"accepted"
-});
-};
-
-// ================= REJECT =================
-window.rejectCall = async()=>{
-
-await updateDoc(roomRef,{
-status:"rejected"
-});
-
-location.href="live.html";
-};
-
-// ================= START WEBRTC =================
-async function startCall(){
+// ================= CALL INIT (A SIDE) =================
+async function startCaller(){
 
 localStream = await navigator.mediaDevices.getUserMedia({
-video:true,
-audio:true
+video:true,audio:true
 });
 
 document.getElementById("local").srcObject = localStream;
@@ -138,10 +144,6 @@ document.getElementById("local").srcObject = localStream;
 localStream.getTracks().forEach(track=>{
 pc.addTrack(track, localStream);
 });
-
-pc.ontrack = (e)=>{
-document.getElementById("remote").srcObject = e.streams[0];
-};
 
 // ICE
 pc.onicecandidate = async(e)=>{
@@ -152,22 +154,94 @@ candidate:e.candidate.toJSON()
 }
 };
 
-// OFFER/ANSWER sync
-onSnapshot(roomRef,async(snap)=>{
+// OFFER
+const offer = await pc.createOffer();
+await pc.setLocalDescription(offer);
+
+await setDoc(roomRef,{
+caller: myId,
+receiver: params.get("to"),
+status:"calling",
+offer: offer
+});
+
+// ANSWER LISTEN
+onSnapshot(roomRef, async(snap)=>{
 const data = snap.data();
 
-if(data?.offer && !pc.currentRemoteDescription){
+if(data?.answer && !pc.currentRemoteDescription){
+await pc.setRemoteDescription(data.answer);
+}
+});
+
+// REMOTE STREAM
+pc.ontrack = (e)=>{
+document.getElementById("remote").srcObject = e.streams[0];
+};
+}
+
+// ================= CALL START (B SIDE) =================
+async function startCall(){
+
+localStream = await navigator.mediaDevices.getUserMedia({
+video:true,audio:true
+});
+
+document.getElementById("local").srcObject = localStream;
+
+localStream.getTracks().forEach(track=>{
+pc.addTrack(track, localStream);
+});
+
+// ICE
+pc.onicecandidate = async(e)=>{
+if(e.candidate){
+await addDoc(collection(roomRef,"candidates"),{
+candidate:e.candidate.toJSON()
+});
+}
+};
+
+// OFFER → ANSWER
+const snap = await getDoc(roomRef);
+const data = snap.data();
+
+if(data?.offer){
 await pc.setRemoteDescription(data.offer);
 
 const answer = await pc.createAnswer();
 await pc.setLocalDescription(answer);
 
 await updateDoc(roomRef,{
-answer:answer
+answer: answer,
+status:"accepted"
 });
 }
-});
 
+// remote video
+pc.ontrack = (e)=>{
+document.getElementById("remote").srcObject = e.streams[0];
+};
+}
+
+// ================= ACCEPT =================
+window.acceptCall = async()=>{
+await updateDoc(roomRef,{
+status:"accepted"
+});
+};
+
+// ================= REJECT =================
+window.rejectCall = async()=>{
+await updateDoc(roomRef,{
+status:"rejected"
+});
+location.href="live.html";
+};
+
+// ================= AUTO START =================
+if(role === "caller"){
+startCaller();
 }
 
 </script>
