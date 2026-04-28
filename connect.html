@@ -93,6 +93,7 @@ margin:5px;
 </div>
 
 <script type="module">
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import {
 getFirestore,
@@ -119,7 +120,7 @@ const params = new URLSearchParams(location.search);
 
 const roomId = params.get("room");
 const myId = params.get("id");
-const role = params.get("role"); // caller / receiver
+const role = params.get("role");
 const to = params.get("to");
 
 const roomRef = doc(db,"calls",roomId);
@@ -131,29 +132,37 @@ iceServers:[{urls:"stun:stun.l.google.com:19302"}]
 
 let localStream;
 let facingMode = "user";
+let receiverReady = false;
 
 // ================= SAFE SNAPSHOT =================
 onSnapshot(roomRef,(snap)=>{
+
 if(!snap.exists()) return;
 
 const data = snap.data();
 
-// 🔔 ONLY RECEIVER POPUP
-if(role === "receiver" && data.status === "calling"){
+// 🔔 RECEIVER POPUP FIX
+if(role === "receiver" && data.status === "calling" && myId === data.receiver){
 document.getElementById("ringBox").style.display="block";
 document.getElementById("statusText").innerText =
 "📞 Call from " + data.caller;
 }
 
-// ❌ REJECT / END → BACK
+// ❌ END / REJECT
 if(data.status === "rejected" || data.status === "ended"){
 location.href="live.html";
 }
 
-// ✅ CALLER CONNECT AFTER ACCEPT
+// 🔥 CALLER CONNECT AFTER ACCEPT
 if(role === "caller" && data.status === "accepted"){
 startCallerWebRTC();
 }
+
+// 🔥 SAFE ANSWER HANDLING
+if(data.answer && pc.signalingState !== "stable" && role === "caller"){
+pc.setRemoteDescription(data.answer);
+}
+
 });
 
 // ================= CALLER =================
@@ -186,13 +195,6 @@ status:"calling",
 offer:offer
 });
 
-onSnapshot(roomRef,async(snap)=>{
-const data = snap.data();
-if(data?.answer && !pc.currentRemoteDescription){
-await pc.setRemoteDescription(data.answer);
-}
-});
-
 pc.ontrack = (e)=>{
 document.getElementById("remote").srcObject = e.streams[0];
 };
@@ -200,6 +202,9 @@ document.getElementById("remote").srcObject = e.streams[0];
 
 // ================= RECEIVER =================
 async function startReceiverWebRTC(){
+
+if(receiverReady) return;
+receiverReady = true;
 
 localStream = await navigator.mediaDevices.getUserMedia({
 video:{facingMode},
@@ -218,10 +223,12 @@ candidate:e.candidate.toJSON()
 }
 };
 
+// 🔥 SAFE OFFER HANDLING
 const snap = await getDoc(roomRef);
 const data = snap.data();
 
-if(data?.offer){
+if(data?.offer && pc.signalingState === "stable"){
+
 await pc.setRemoteDescription(data.offer);
 
 const answer = await pc.createAnswer();
@@ -240,9 +247,13 @@ document.getElementById("remote").srcObject = e.streams[0];
 
 // ================= ACCEPT =================
 window.acceptCall = async()=>{
+
 document.getElementById("ringBox").style.display="none";
+
+// 🔥 FIRST INIT STREAM THEN CONNECT
+await startReceiverWebRTC();
+
 await updateDoc(roomRef,{status:"accepted"});
-startReceiverWebRTC();
 };
 
 // ================= REJECT =================
@@ -266,11 +277,8 @@ if(localStream){
 localStream.getTracks().forEach(t=>t.stop());
 }
 
-if(role === "caller"){
-startCallerWebRTC();
-}else{
-startReceiverWebRTC();
-}
+if(role === "caller") startCallerWebRTC();
+else startReceiverWebRTC();
 };
 
 // ================= AUTO START CALLER =================
