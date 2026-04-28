@@ -6,41 +6,57 @@
 <title>Video Call</title>
 
 <style>
-body{background:#000;margin:0;overflow:hidden}
-video{position:absolute;width:100%;height:100%;object-fit:cover}
+body{background:#000;color:#fff;margin:0;font-family:sans-serif}
 
-#local{
-width:110px;height:150px;
-position:absolute;top:20px;right:20px;
-border-radius:10px;border:2px solid #fff;
-z-index:10;
-}
-
-.controls{
-position:absolute;bottom:30px;width:100%;
-display:flex;justify-content:center;gap:20px;
-z-index:10;
+#ringBox{
+position:absolute;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+text-align:center;
 }
 
 button{
-width:60px;height:60px;border-radius:50%;
-border:none;font-size:20px;
+padding:10px 20px;
+margin:10px;
+border:none;
+border-radius:8px;
+font-size:16px;
 }
 
-.end{background:red;color:#fff;}
-.action{background:#333;color:#fff;}
+.accept{background:green;color:#fff}
+.reject{background:red;color:#fff}
+
+video{
+position:absolute;
+width:100%;
+height:100%;
+object-fit:cover;
+}
+
+#local{
+width:110px;
+height:150px;
+position:absolute;
+top:20px;
+right:20px;
+border:2px solid #fff;
+border-radius:10px;
+}
 </style>
 </head>
 
 <body>
 
+<div id="ringBox">
+<h2 id="statusText">Incoming Call...</h2>
+
+<button class="accept" onclick="acceptCall()">Accept</button>
+<button class="reject" onclick="rejectCall()">Reject</button>
+</div>
+
 <video id="remote" autoplay playsinline></video>
 <video id="local" autoplay playsinline muted></video>
-
-<div class="controls">
-<button class="action" onclick="switchCamera()">🔄</button>
-<button class="end" onclick="endCall()">📞</button>
-</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -49,9 +65,10 @@ getFirestore,
 doc,
 setDoc,
 onSnapshot,
+updateDoc,
+deleteDoc,
 collection,
-addDoc,
-deleteDoc
+addDoc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const app = initializeApp({
@@ -67,16 +84,49 @@ iceServers:[{urls:"stun:stun.l.google.com:19302"}]
 });
 
 let localStream;
-let useFront = true;
 
 const params = new URLSearchParams(location.search);
 const roomId = params.get("room");
-const isCaller = params.get("caller") === "true";
 
 const roomRef = doc(db,"calls",roomId);
 
-// ================= CAMERA =================
-async function init(){
+// ================= CHECK CALL STATUS =================
+onSnapshot(roomRef,(snap)=>{
+const data = snap.data();
+
+// 🔥 CALLING STATE (ringing)
+if(data?.status === "calling"){
+document.getElementById("statusText").innerText =
+"📞 Call from: " + data.caller;
+}
+
+// 🔥 ACCEPTED STATE
+if(data?.status === "accepted"){
+document.getElementById("ringBox").style.display="none";
+startCall();
+}
+});
+
+// ================= ACCEPT =================
+window.acceptCall = async()=>{
+
+await updateDoc(roomRef,{
+status:"accepted"
+});
+};
+
+// ================= REJECT =================
+window.rejectCall = async()=>{
+
+await updateDoc(roomRef,{
+status:"rejected"
+});
+
+location.href="live.html";
+};
+
+// ================= START WEBRTC =================
+async function startCall(){
 
 localStream = await navigator.mediaDevices.getUserMedia({
 video:true,
@@ -89,122 +139,36 @@ localStream.getTracks().forEach(track=>{
 pc.addTrack(track, localStream);
 });
 
-pc.ontrack = (event)=>{
-document.getElementById("remote").srcObject = event.streams[0];
+pc.ontrack = (e)=>{
+document.getElementById("remote").srcObject = e.streams[0];
 };
 
-// ================= ICE =================
-pc.onicecandidate = async(event)=>{
-if(event.candidate){
-await addDoc(collection(roomRef,
-isCaller ? "callerCandidates" : "calleeCandidates"
-),{
-candidate:event.candidate.toJSON()
+// ICE
+pc.onicecandidate = async(e)=>{
+if(e.candidate){
+await addDoc(collection(roomRef,"candidates"),{
+candidate:e.candidate.toJSON()
 });
 }
 };
 
-// ================= CALLER =================
-if(isCaller){
-
-const offer = await pc.createOffer();
-await pc.setLocalDescription(offer);
-
-await setDoc(roomRef,{
-offer:offer,
-status:"calling"
-},{merge:true});
-
-// answer listener
-onSnapshot(roomRef,(snap)=>{
-const data = snap.data();
-if(data?.answer && !pc.currentRemoteDescription){
-pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-}
-});
-
-// callee candidates
-onSnapshot(collection(roomRef,"calleeCandidates"),snap=>{
-snap.docChanges().forEach(c=>{
-if(c.type==="added"){
-pc.addIceCandidate(new RTCIceCandidate(c.doc.data().candidate));
-}
-});
-});
-
-}
-
-// ================= RECEIVER =================
-else{
-
+// OFFER/ANSWER sync
 onSnapshot(roomRef,async(snap)=>{
 const data = snap.data();
 
 if(data?.offer && !pc.currentRemoteDescription){
-
-await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+await pc.setRemoteDescription(data.offer);
 
 const answer = await pc.createAnswer();
 await pc.setLocalDescription(answer);
 
-await setDoc(roomRef,{
-answer:answer,
-status:"connected"
-},{merge:true});
+await updateDoc(roomRef,{
+answer:answer
+});
 }
 });
 
-// caller candidates
-onSnapshot(collection(roomRef,"callerCandidates"),snap=>{
-snap.docChanges().forEach(c=>{
-if(c.type==="added"){
-pc.addIceCandidate(new RTCIceCandidate(c.doc.data().candidate));
 }
-});
-});
-}
-
-}
-
-init();
-
-// ================= SWITCH CAMERA =================
-window.switchCamera = async()=>{
-
-useFront = !useFront;
-
-localStream.getTracks().forEach(t=>t.stop());
-
-localStream = await navigator.mediaDevices.getUserMedia({
-video:{facingMode:useFront?"user":"environment"},
-audio:true
-});
-
-const track = localStream.getVideoTracks()[0];
-const sender = pc.getSenders().find(s=>s.track.kind==="video");
-
-if(sender) sender.replaceTrack(track);
-
-document.getElementById("local").srcObject = localStream;
-};
-
-// ================= END CALL =================
-window.endCall = async()=>{
-
-if(localStream){
-localStream.getTracks().forEach(t=>t.stop());
-}
-
-try{
-await deleteDoc(roomRef);
-}catch(e){}
-
-location.href="live.html";
-};
-
-window.addEventListener("beforeunload",async()=>{
-try{ await deleteDoc(roomRef); }catch(e){}
-});
 
 </script>
 
