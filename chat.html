@@ -6,30 +6,52 @@
 <title>Chat</title>
 
 <style>
-body{margin:0;background:#000;color:#fff;font-family:sans-serif}
+body{
+margin:0;
+background:#000;
+color:#fff;
+font-family:sans-serif;
+}
 
 .header{
 background:linear-gradient(45deg,#ff0066,#ff6600);
-padding:12px;
+padding:14px;
 text-align:center;
 font-weight:bold;
 }
 
+.status{
+text-align:center;
+font-size:12px;
+margin-top:3px;
+color:#aaa;
+}
+
 #messages{
-height:75vh;
+height:78vh;
 overflow-y:auto;
 padding:10px;
 }
 
 .msg{
-padding:8px;
-margin:5px;
-border-radius:8px;
 max-width:70%;
+padding:8px 10px;
+margin:5px;
+border-radius:10px;
+word-wrap:break-word;
+font-size:14px;
 }
 
-.me{background:green;margin-left:auto}
-.other{background:#333}
+.me{
+background:#00c853;
+margin-left:auto;
+text-align:right;
+}
+
+.other{
+background:#333;
+margin-right:auto;
+}
 
 .box{
 position:fixed;
@@ -45,19 +67,16 @@ flex:1;
 padding:10px;
 border:none;
 outline:none;
+border-radius:6px;
 }
 
 button{
 background:#ff0066;
 color:#fff;
 border:none;
-padding:10px;
+padding:10px 15px;
 margin-left:5px;
-}
-.status{
-font-size:12px;
-text-align:center;
-margin-top:2px;
+border-radius:6px;
 }
 </style>
 </head>
@@ -65,18 +84,18 @@ margin-top:2px;
 <body>
 
 <div class="header">💬 Chat</div>
-<div class="status" id="status">loading...</div>
+<div class="status" id="status">Loading...</div>
 
 <div id="messages"></div>
 
 <div class="box">
-<input id="msg" placeholder="Type...">
+<input id="msg" placeholder="Type message...">
 <button onclick="sendMsg()">Send</button>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, getDoc } 
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, getDoc } 
 from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } 
 from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -87,87 +106,106 @@ authDomain:"sykolive-846a3.firebaseapp.com",
 projectId:"sykolive-846a3"
 });
 
-const db=getFirestore(app);
-const auth=getAuth(app);
+const db = getFirestore(app);
+const auth = getAuth(app);
 
-let uid,chatId,otherId;
+let uid, chatId, otherId;
 
-onAuthStateChanged(auth,async(user)=>{
-if(!user){location.href="index.html";return;}
-
-uid=user.uid;
-
-const params=new URLSearchParams(location.search);
-otherId=params.get("id");
-
-if(!otherId){
-document.getElementById("status").innerText="Invalid user";
+// 🔐 LOGIN
+onAuthStateChanged(auth, async(user)=>{
+if(!user){
+location.href="index.html";
 return;
 }
 
-// 🔥 SAME CHAT ID FIX
-chatId=[uid,otherId].sort().join("_");
+uid = user.uid;
 
-loadHeader();
+const params = new URLSearchParams(location.search);
+otherId = params.get("id");
+
+if(!otherId){
+document.getElementById("status").innerText="Invalid chat user";
+return;
+}
+
+// 🔥 FIXED CHAT ID (MOST IMPORTANT)
+chatId = uid < otherId
+? uid + "_" + otherId
+: otherId + "_" + uid;
+
+loadUser();
 loadMessages();
 });
 
-// 👤 HEADER + ONLINE
-async function loadHeader(){
-const snap=await getDoc(doc(db,"users",otherId));
 
-if(!snap.exists()) return;
+// 👤 HEADER + ONLINE STATUS
+async function loadUser(){
+try{
+const snap = await getDoc(doc(db,"users",otherId));
 
-const u=snap.data();
-
-document.querySelector(".header").innerText="💬 "+u.name;
-
-// 🔥 LIVE STATUS
-let online=u.lastSeen && (Date.now()-u.lastSeen < 2*60*1000);
-
-document.getElementById("status").innerText=online?"🟢 Online":"⚫ Offline";
+if(!snap.exists()){
+document.querySelector(".header").innerText="💬 Chat";
+return;
 }
 
-// 📩 MESSAGES
+const u = snap.data();
+
+document.querySelector(".header").innerText="💬 " + (u.name || "Chat");
+
+// 🔥 ONLINE CHECK (2 min rule)
+let online = u.lastSeen && (Date.now() - u.lastSeen < 2*60*1000);
+
+document.getElementById("status").innerText =
+online ? "🟢 Online" : "⚫ Offline";
+
+}catch(e){
+console.log(e);
+}
+}
+
+
+// 📩 LOAD MESSAGES (REALTIME FIXED)
 function loadMessages(){
 
-const q=query(
+const q = query(
 collection(db,"chats",chatId,"messages"),
-orderBy("time")
+orderBy("time","asc")
 );
 
 onSnapshot(q,(snap)=>{
 let html="";
 
 snap.forEach(d=>{
-let m=d.data();
+let m = d.data();
 
-html+=`
-<div class="msg ${m.sender===uid?'me':'other'}">
+html += `
+<div class="msg ${m.sender === uid ? 'me' : 'other'}">
 ${m.text}
 </div>`;
 });
 
-let box=document.getElementById("messages");
-box.innerHTML=html;
-box.scrollTop=box.scrollHeight;
+let box = document.getElementById("messages");
+box.innerHTML = html;
+box.scrollTop = box.scrollHeight;
 });
 }
 
-// ✉ SEND
-window.sendMsg=async()=>{
 
-let input=document.getElementById("msg");
-let text=input.value.trim();
+// ✉ SEND MESSAGE (FIXED)
+window.sendMsg = async()=>{
+
+let input = document.getElementById("msg");
+let text = input.value.trim();
+
 if(!text) return;
 
 input.value="";
 
 await addDoc(collection(db,"chats",chatId,"messages"),{
-text,
+text:text,
 sender:uid,
 receiver:otherId,
-time:serverTimestamp()
+time:Date.now()
 });
 };
 
