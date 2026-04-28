@@ -9,36 +9,49 @@ const firebaseConfig = {
  projectId:"sykolive-846a3"
 };
 
-const app=initializeApp(firebaseConfig);
-const db=getFirestore(app);
-const auth=getAuth(app);
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
 
 let uid, callData;
 
 onAuthStateChanged(auth, async (user) => {
  if(!user){ location.href="index.html"; return; }
+
  uid = user.uid;
 
- // 1. ನೀವು ಲಾಗಿನ್ ಆದ ತಕ್ಷಣ ನಿಮ್ಮನ್ನು ಆನ್‌ಲೈನ್ ಎಂದು ತೋರಿಸಲು (ಇದು ನಿಮ್ಮ ಐಡಿ ಬೇರೆಯವರಿಗೆ ಕಾಣುವಂತೆ ಮಾಡುತ್ತದೆ)
+ // ✅ FIX 1: user data create/update (MOST IMPORTANT)
+ await setDoc(doc(db, "users", uid), {
+  uid: uid,
+  name: user.displayName || "User",
+  profilePic: user.photoURL || "",
+  age: 20,
+  rate: 10,
+  isOnline: true,
+  lastSeen: serverTimestamp()
+ }, { merge: true });
+
+ // ✅ keep online update
  try {
-  await updateDoc(doc(db, "users", uid), { 
+  await updateDoc(doc(db, "users", uid), {
     isOnline: true,
-    lastSeen: serverTimestamp() 
+    lastSeen: serverTimestamp()
   });
  } catch(e) {
   console.log("Status update error", e);
  }
 
- // 2. ಆನ್‌ಲೈನ್ ಬಳಕೆದಾರರ ಪಟ್ಟಿ (ಎಲ್ಲರಿಗೂ ಪರಸ್ಪರ ಐಡಿ ಕಾಣುವಂತೆ ಮಾಡಲಾಗಿದೆ)
+ // ✅ FIX 2: realtime user list (correct UID match)
  onSnapshot(collection(db, "users"), (snap) => {
   let html = "", count = 0;
-  
+
   snap.forEach((d) => {
    let u = d.data();
 
-   // ಇಲ್ಲಿ ಕೇವಲ ನಿಮ್ಮ ಐಡಿ ಹೊರತುಪಡಿಸಿ, ಆನ್‌ಲೈನ್ ಇರುವ ಎಲ್ಲರನ್ನೂ ತೋರಿಸುತ್ತದೆ
-   if(u.uid !== uid && u.isOnline === true) {
+   // 🔥 MAIN FIX HERE
+   if(d.id !== uid && u.isOnline === true) {
     count++;
+
     html += `
     <div class="user">
       <div class="top-section">
@@ -50,11 +63,15 @@ onAuthStateChanged(auth, async (user) => {
           </div>
         </div>
         <div class="actions">
-          <button class="chat" onclick="chatUser('${u.uid}','${u.name}')"><i class="fa-solid fa-message"></i></button>
-          <button class="call" onclick="callUser('${u.uid}')"><i class="fa-solid fa-video"></i></button>
+          <button class="chat" onclick="chatUser('${d.id}','${u.name}')">
+            <i class="fa-solid fa-message"></i>
+          </button>
+          <button class="call" onclick="callUser('${d.id}')">
+            <i class="fa-solid fa-video"></i>
+          </button>
         </div>
       </div>
-      <button class="big-book-btn" onclick="bookUser('${u.name}','${u.rate}','${u.uid}')">
+      <button class="big-book-btn" onclick="bookUser('${u.name}','${u.rate}','${d.id}')">
         <i class="fa-solid fa-calendar-check"></i> BOOK NOW (₹${u.rate})
       </button>
     </div>`;
@@ -65,7 +82,7 @@ onAuthStateChanged(auth, async (user) => {
   document.getElementById("count").innerText = count + " online";
  });
 
- // ಕರೆಯ ಆಲಿಕೆ (Call Listener)
+ // ✅ call listener (unchanged)
  onSnapshot(doc(db, "calls", uid), (snap) => {
   if(snap.exists()){
    callData = snap.data();
@@ -75,36 +92,54 @@ onAuthStateChanged(auth, async (user) => {
  });
 });
 
-// ಬುಕಿಂಗ್ ಫಂಕ್ಷನ್ (ಯಾವುದನ್ನೂ ಅಳಿಸಿಲ್ಲ)
+// ✅ booking (unchanged)
 window.bookUser = async (targetName, rate, targetUid) => {
-  try {
-    const bookingId = "book_" + Date.now();
-    await setDoc(doc(db, "bookings", bookingId), {
-      bookerName: auth.currentUser.displayName || "User",
-      bookerId: uid,
-      targetName: targetName,
-      targetId: targetUid,
-      amount: rate,
-      time: new Date().toLocaleString(),
-      status: "Confirmed"
-    });
-    alert("Booking Successful for " + targetName);
-  } catch (error) {
-    alert("Error in booking!");
-  }
+ try {
+  const bookingId = "book_" + Date.now();
+  await setDoc(doc(db, "bookings", bookingId), {
+   bookerName: auth.currentUser.displayName || "User",
+   bookerId: uid,
+   targetName: targetName,
+   targetId: targetUid,
+   amount: rate,
+   time: new Date().toLocaleString(),
+   status: "Confirmed"
+  });
+  alert("Booking Successful for " + targetName);
+ } catch (error) {
+  alert("Error in booking!");
+ }
 };
 
-// ಕಾಲ್ ಫಂಕ್ಷನ್
+// ✅ call system (working)
 window.callUser = async(id) => {
  let room = "room_" + Date.now();
  await setDoc(doc(db, "calls", id), { from: uid, room: room });
  location.href = `connect.html?room=${room}&caller=true`;
 };
 
-window.chatUser = (id, name) => { location.href = `chat.html?id=${id}&name=${name}`; };
-window.accept = () => { location.href = `connect.html?room=${callData.room}`; };
+// ✅ chat system (working)
+window.chatUser = (id, name) => {
+ location.href = `chat.html?id=${id}&name=${name}`;
+};
+
+// ✅ accept/reject
+window.accept = () => {
+ location.href = `connect.html?room=${callData.room}`;
+};
+
 window.reject = async() => {
  await deleteDoc(doc(db, "calls", uid));
  document.getElementById("popup").style.display = "none";
 };
+
+// ✅ FIX 3: offline status
+window.addEventListener("beforeunload", async () => {
+ try {
+  await updateDoc(doc(db, "users", uid), {
+   isOnline: false,
+   lastSeen: serverTimestamp()
+  });
+ } catch(e){}
+});
 </script>
