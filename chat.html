@@ -12,7 +12,7 @@ const app = initializeApp({
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-let uid, chatId, unsubscribe;
+let uid, chatId, otherId, unsubscribe;
 
 // 🔐 LOGIN CHECK
 onAuthStateChanged(auth,user=>{
@@ -24,24 +24,27 @@ onAuthStateChanged(auth,user=>{
  uid=user.uid;
 
  const params=new URLSearchParams(location.search);
- const other=params.get("id");
+ otherId=params.get("id");
+ const otherName=params.get("name");
 
- if(!other){
+ if(!otherId){
   alert("Invalid chat");
   location.href="live.html";
   return;
  }
 
- // 🔥 UNIQUE CHAT ID
- chatId = uid < other ? uid+"_"+other : other+"_"+uid;
+ // ✅ HEADER NAME SHOW
+ document.querySelector(".header").innerText = "💬 " + (otherName || "Chat");
+
+ // 🔥 UNIQUE CHAT ID (VERY IMPORTANT FIX)
+ chatId = [uid, otherId].sort().join("_");
 
  loadMessages();
 });
 
-// 📩 LOAD MESSAGES
+// 📩 LOAD MESSAGES (REALTIME BOTH SIDE)
 function loadMessages(){
 
- // 🔥 prevent duplicate listeners
  if(unsubscribe) unsubscribe();
 
  const q=query(
@@ -63,7 +66,6 @@ function loadMessages(){
 
   document.getElementById("messages").innerHTML=html;
 
-  // 🔥 smooth scroll
   setTimeout(()=>{
    messages.scrollTop=messages.scrollHeight;
   },100);
@@ -82,7 +84,8 @@ window.sendMsg = async ()=>{
  await addDoc(collection(db,"chats",chatId,"messages"),{
   text:text,
   sender:uid,
-  time:serverTimestamp() // 🔥 FIXED
+  receiver:otherId, // ✅ IMPORTANT
+  time:serverTimestamp()
  });
 };
 
