@@ -148,31 +148,30 @@ window.chatUser = (id,name)=>{
 location.href="chat.html?id="+id+"&name="+encodeURIComponent(name || "User");
 };
 
-// ================= CALL (FIXED 404 ISSUE) =================
+// ================= CALL (FINAL SAFE FIX) =================
 window.callUser = async(id)=>{
 
 if(!uid || !id) return;
 
-// safe room
+try{
+
 let room = [uid,id].sort().join("_");
 
-try{
 await setDoc(doc(db,"calls",room),{
 caller:uid,
 receiver:id,
 status:"calling",
-time:Date.now()
+createdAt:Date.now()
 },{merge:true});
+
+// 🔥 IMPORTANT: this file MUST exist
+location.href = "connect.html?room=" + room + "&caller=true";
+
 }catch(e){
-console.log("call error",e);
-return;
+console.log("Call error:",e);
+alert("Call failed");
 }
 
-/*
-🔥 IMPORTANT FIX:
-connect.html MUST exist in same folder
-*/
-location.href = "connect.html?room=" + room + "&caller=true";
 };
 
 // ================= BOOK =================
