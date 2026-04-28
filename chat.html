@@ -1,6 +1,6 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const app = initializeApp({
@@ -14,8 +14,8 @@ const auth = getAuth(app);
 
 let uid, chatId, otherId, unsubscribe;
 
-// 🔐 LOGIN CHECK
-onAuthStateChanged(auth,user=>{
+// 🔐 LOGIN
+onAuthStateChanged(auth, async (user)=>{
  if(!user){
   location.href="index.html";
   return;
@@ -33,16 +33,37 @@ onAuthStateChanged(auth,user=>{
   return;
  }
 
- // ✅ HEADER NAME SHOW
- document.querySelector(".header").innerText = "💬 " + (otherName || "Chat");
+ // 🔥 SAFE HEADER FIX
+ const header = document.querySelector(".header");
+ if(header){
+  header.innerText = "💬 " + (otherName || "Chat");
+ }
 
- // 🔥 UNIQUE CHAT ID (VERY IMPORTANT FIX)
+ // 🔥 LOAD OTHER USER PROFILE (NAME + DP)
+ try{
+  const snap = await getDoc(doc(db,"users",otherId));
+  if(snap.exists()){
+   const u = snap.data();
+
+   // 👉 if you have image + name element add here
+   if(document.getElementById("chatName")){
+    document.getElementById("chatName").innerText = u.name;
+   }
+   if(document.getElementById("chatDp")){
+    document.getElementById("chatDp").src = u.profilePic || "";
+   }
+  }
+ }catch(e){
+  console.log("Profile load error",e);
+ }
+
+ // 🔥 UNIQUE CHAT ID
  chatId = [uid, otherId].sort().join("_");
 
  loadMessages();
 });
 
-// 📩 LOAD MESSAGES (REALTIME BOTH SIDE)
+// 📩 LOAD
 function loadMessages(){
 
  if(unsubscribe) unsubscribe();
@@ -64,15 +85,17 @@ function loadMessages(){
    </div>`;
   });
 
-  document.getElementById("messages").innerHTML=html;
+  const msgBox = document.getElementById("messages");
+  msgBox.innerHTML = html;
 
+  // ✅ FIXED SCROLL
   setTimeout(()=>{
-   messages.scrollTop=messages.scrollHeight;
+   msgBox.scrollTop = msgBox.scrollHeight;
   },100);
  });
 }
 
-// ✉ SEND MESSAGE
+// ✉ SEND
 window.sendMsg = async ()=>{
  const input=document.getElementById("msg");
  const text=input.value.trim();
@@ -84,12 +107,12 @@ window.sendMsg = async ()=>{
  await addDoc(collection(db,"chats",chatId,"messages"),{
   text:text,
   sender:uid,
-  receiver:otherId, // ✅ IMPORTANT
+  receiver:otherId,
   time:serverTimestamp()
  });
 };
 
-// 🔥 ENTER KEY SEND
+// ⌨ ENTER SEND
 document.getElementById("msg").addEventListener("keypress",e=>{
  if(e.key==="Enter") sendMsg();
 });
