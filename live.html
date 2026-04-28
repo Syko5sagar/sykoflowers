@@ -53,8 +53,10 @@ body{background:#000;color:#fff;font-family:Poppins;margin:0}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, onSnapshot, doc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getFirestore, collection, onSnapshot, doc, updateDoc, setDoc } 
+from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } 
+from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const app = initializeApp({
  apiKey:"AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
@@ -68,15 +70,18 @@ const auth = getAuth(app);
 let uid;
 
 // 🔐 LOGIN
-onAuthStateChanged(auth,async(user)=>{
- if(!user){ location.href="index.html"; return;}
+onAuthStateChanged(auth, async (user)=>{
+ if(!user){ location.href="index.html"; return; }
 
- uid=user.uid;
+ uid = user.uid;
 
- // 🟢 ONLINE STATUS
- await updateDoc(doc(db,"users",uid),{isOnline:true});
+ // 🟢 ONLINE
+ await updateDoc(doc(db,"users",uid),{
+  isOnline:true,
+  lastSeen:Date.now()
+ });
 
- // 👤 MY PROFILE SHOW
+ // 👤 PROFILE
  onSnapshot(doc(db,"users",uid),(s)=>{
   let u=s.data();
   if(!u) return;
@@ -91,9 +96,7 @@ onAuthStateChanged(auth,async(user)=>{
   snap.forEach(d=>{
    let u=d.data();
 
-   // 🔥 MAIN FIX (correct id check)
    if(d.id !== uid && u.isOnline === true){
-
     c++;
 
     html+=`
@@ -115,12 +118,14 @@ onAuthStateChanged(auth,async(user)=>{
 
 });
 
+
 // 💬 CHAT
 window.chatUser = (id, name)=>{
  location.href = `chat.html?id=${id}&name=${name}`;
 };
 
-// 📞 CALL (FIXED ROOM)
+
+// 📞 CALL
 window.callUser = async(id)=>{
  let room = [uid, id].sort().join("_");
 
@@ -131,6 +136,7 @@ window.callUser = async(id)=>{
 
  location.href = `connect.html?room=${room}&caller=true`;
 };
+
 
 // 💰 BOOKING
 window.bookUser = async(name,rate,id)=>{
@@ -149,12 +155,37 @@ window.bookUser = async(name,rate,id)=>{
  alert("Booking Sent 🔥");
 };
 
-// 🔴 OFFLINE FIX
-window.addEventListener("beforeunload", async ()=>{
- try{
-  await updateDoc(doc(db,"users",uid),{isOnline:false});
- }catch(e){}
+
+// 🔥 FIXED ONLINE/OFFLINE SYSTEM
+function setOffline(){
+ updateDoc(doc(db,"users",uid),{
+  isOnline:false,
+  lastSeen:Date.now()
+ }).catch(()=>{});
+}
+
+function setOnline(){
+ updateDoc(doc(db,"users",uid),{
+  isOnline:true,
+  lastSeen:Date.now()
+ }).catch(()=>{});
+}
+
+
+// ✔ BEST FIX (IMPORTANT)
+document.addEventListener("visibilitychange", ()=>{
+ if(document.visibilityState === "hidden"){
+  setOffline();
+ }
+ if(document.visibilityState === "visible"){
+  setOnline();
+ }
 });
+
+
+// ✔ extra safety (mobile close)
+window.addEventListener("pagehide", setOffline);
+
 </script>
 
 </body>
