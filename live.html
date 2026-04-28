@@ -75,7 +75,7 @@ onAuthStateChanged(auth, async (user)=>{
 
  uid = user.uid;
 
- // 🟢 ONLINE
+ // 🟢 ONLINE MARK
  await updateDoc(doc(db,"users",uid),{
   isOnline:true,
   lastSeen:Date.now()
@@ -96,7 +96,10 @@ onAuthStateChanged(auth, async (user)=>{
   snap.forEach(d=>{
    let u=d.data();
 
-   if(d.id !== uid && u.isOnline === true){
+   // 🔥 2 MINUTES PRESENCE LOGIC
+   let isActive = u.lastSeen && (Date.now() - u.lastSeen < 2 * 60 * 1000);
+
+   if(d.id !== uid && isActive){
     c++;
 
     html+=`
@@ -119,26 +122,28 @@ onAuthStateChanged(auth, async (user)=>{
 });
 
 
-// 💬 CHAT
+// 💬 CHAT CONNECTIVITY
 window.chatUser = (id, name)=>{
  location.href = `chat.html?id=${id}&name=${name}`;
 };
 
 
-// 📞 CALL
+// 📞 VIDEO CALL CONNECTIVITY
 window.callUser = async(id)=>{
  let room = [uid, id].sort().join("_");
 
  await setDoc(doc(db,"calls",room),{
   caller:uid,
-  receiver:id
+  receiver:id,
+  status:"calling",
+  time:Date.now()
  });
 
  location.href = `connect.html?room=${room}&caller=true`;
 };
 
 
-// 💰 BOOKING
+// 💰 BOOKING SYSTEM
 window.bookUser = async(name,rate,id)=>{
  const user = auth.currentUser;
 
@@ -156,35 +161,22 @@ window.bookUser = async(name,rate,id)=>{
 };
 
 
-// 🔥 FIXED ONLINE/OFFLINE SYSTEM
-function setOffline(){
+// 🔥 PRESENCE SYSTEM (2 MIN GRACE)
+function updateLastSeen(){
  updateDoc(doc(db,"users",uid),{
-  isOnline:false,
   lastSeen:Date.now()
  }).catch(()=>{});
 }
 
-function setOnline(){
- updateDoc(doc(db,"users",uid),{
-  isOnline:true,
-  lastSeen:Date.now()
- }).catch(()=>{});
-}
-
-
-// ✔ BEST FIX (IMPORTANT)
+// tab hide / exit
 document.addEventListener("visibilitychange", ()=>{
  if(document.visibilityState === "hidden"){
-  setOffline();
- }
- if(document.visibilityState === "visible"){
-  setOnline();
+  updateLastSeen();
  }
 });
 
-
-// ✔ extra safety (mobile close)
-window.addEventListener("pagehide", setOffline);
+// mobile / page close
+window.addEventListener("pagehide", updateLastSeen);
 
 </script>
 
