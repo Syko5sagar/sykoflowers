@@ -8,47 +8,79 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Poppins}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif}
 
 body{
  background:#000;
- color:#fff;
+ color:white;
  display:flex;
  justify-content:center;
  align-items:center;
  height:100vh;
 }
 
+/* CONTAINER */
 .box{
- background:#111;
+ width:90%;
+ max-width:400px;
  padding:25px;
- border-radius:20px;
- width:320px;
+ border-radius:25px;
+ border:2px solid #00ff00;
  text-align:center;
- border:2px solid #32cd32;
 }
 
-img{
- width:90px;height:90px;border-radius:50%;margin-bottom:10px;
+/* TITLE */
+h2{
+ margin-bottom:20px;
 }
 
-input{
+/* PHOTO */
+.photo{
+ width:110px;
+ height:110px;
+ border-radius:50%;
+ background:#222;
+ margin:0 auto 20px;
+ display:flex;
+ justify-content:center;
+ align-items:center;
+ cursor:pointer;
+ overflow:hidden;
+ border:2px dashed red;
+}
+
+.photo img{
  width:100%;
- padding:10px;
- margin:8px 0;
- background:#000;
- border:1px solid red;
- color:#fff;
- border-radius:10px;
+ height:100%;
+ object-fit:cover;
+ display:none;
 }
 
-button{
+.photo i{
+ font-size:35px;
+ color:#00ff00;
+}
+
+/* INPUT */
+input,select{
  width:100%;
  padding:12px;
- background:#32cd32;
+ margin:10px 0;
+ border-radius:10px;
+ border:1px solid red;
+ background:#000;
+ color:white;
+}
+
+/* BUTTON */
+button{
+ width:100%;
+ padding:15px;
+ background:#00ff00;
  border:none;
  border-radius:10px;
  font-weight:bold;
+ margin-top:10px;
 }
 </style>
 </head>
@@ -56,16 +88,23 @@ button{
 <body>
 
 <div class="box">
-<h3>Profile</h3>
 
-<input type="file" id="fileInput">
-<img id="preview">
+<h2>Profile</h2>
+
+<!-- PHOTO -->
+<div class="photo" onclick="fileInput.click()">
+ <i id="icon">📷</i>
+ <img id="preview">
+</div>
+
+<input type="file" id="fileInput" hidden accept="image/*">
 
 <input type="text" id="name" placeholder="Name">
 <input type="number" id="age" placeholder="Age">
 <input type="number" id="rate" placeholder="Rate">
 
-<button id="save">SAVE</button>
+<button onclick="saveProfile()">NEXT</button>
+
 </div>
 
 <script type="module">
@@ -82,35 +121,56 @@ const app = initializeApp({
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-let user, img="";
+let userId=null;
+let imageData="";
 
-onAuthStateChanged(auth,(u)=>{
- if(!u){ location.href="index.html"; return;}
- user=u;
+// LOGIN CHECK
+onAuthStateChanged(auth,user=>{
+ if(user){
+  userId=user.uid;
+ }else{
+  location.href="index.html";
+ }
 });
 
-fileInput.onchange=e=>{
- let f=e.target.files[0];
- let r=new FileReader();
- r.onload=()=>{
-  img=r.result;
-  preview.src=img;
+// IMAGE SELECT
+fileInput.addEventListener("change",e=>{
+ const file=e.target.files[0];
+ if(!file) return;
+
+ const reader=new FileReader();
+ reader.onload=()=>{
+  imageData=reader.result;
+  preview.src=imageData;
+  preview.style.display="block";
+  icon.style.display="none";
  };
- r.readAsDataURL(f);
-};
+ reader.readAsDataURL(file);
+});
 
-save.onclick=async()=>{
- if(!user) return;
+// SAVE PROFILE
+window.saveProfile = async ()=>{
+ const name=document.getElementById("name").value;
+ const age=document.getElementById("age").value;
+ const rate=document.getElementById("rate").value;
 
- await setDoc(doc(db,"users",user.uid),{
-  name:name.value,
-  age:age.value,
-  rate:rate.value,
-  profilePic:img,
-  isOnline:true
+ if(!name || !age || !rate || !imageData){
+  alert("Fill all");
+  return;
+ }
+
+ await setDoc(doc(db,"users",userId),{
+  uid:userId,
+  name:name,
+  age:age,
+  rate:rate,
+  profilePic:imageData,
+  isOnline:true,
+  createdAt:Date.now()
  });
 
- location.href="live.html";
+ // ✅ NEXT → LIVE PAGE
+ window.location.href="live.html";
 };
 </script>
 
