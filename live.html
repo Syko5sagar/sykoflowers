@@ -7,33 +7,11 @@
 
 <style>
 body{background:#000;color:#fff;font-family:Poppins;margin:0}
-
-.header{
-background:linear-gradient(45deg,#ff0066,#ff6600);
-padding:15px;
-text-align:center;
-font-weight:bold;
-}
-
-.top{
-display:flex;
-align-items:center;
-padding:10px;
-background:#111;
-}
-
-.top img{
-width:45px;height:45px;border-radius:50%;margin-right:10px;
-}
-
-.user{
-background:#111;margin:10px;padding:10px;border-radius:10px;
-}
-
-.btn{
-padding:5px 8px;margin:3px;border:none;border-radius:5px;color:#fff;
-cursor:pointer;
-}
+.header{background:linear-gradient(45deg,#ff0066,#ff6600);padding:15px;text-align:center;font-weight:bold}
+.top{display:flex;align-items:center;padding:10px;background:#111}
+.top img{width:45px;height:45px;border-radius:50%;margin-right:10px}
+.user{background:#111;margin:10px;padding:10px;border-radius:10px}
+.btn{padding:5px 8px;margin:3px;border:none;border-radius:5px;color:#fff;cursor:pointer}
 .chat{background:green}
 .call{background:blue}
 .book{background:#ff0066;width:100%;margin-top:5px}
@@ -53,14 +31,15 @@ cursor:pointer;
 <div id="list"></div>
 
 <script type="module">
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import {
 getFirestore,
 collection,
 onSnapshot,
 doc,
-updateDoc,
-setDoc
+setDoc,
+updateDoc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 import {
@@ -68,12 +47,14 @@ getAuth,
 onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-const app = initializeApp({
+// 🔥 FIREBASE CONFIG
+const firebaseConfig = {
 apiKey:"AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
 authDomain:"sykolive-846a3.firebaseapp.com",
 projectId:"sykolive-846a3"
-});
+};
 
+const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
@@ -81,35 +62,22 @@ let uid;
 
 // ================= LOGIN =================
 onAuthStateChanged(auth, async(user)=>{
-if(!user){
-location.href="index.html";
-return;
-}
+if(!user){ location.href="index.html"; return; }
 
 uid = user.uid;
 
-// online update
+// online
 await setDoc(doc(db,"users",uid),{
 isOnline:true,
 lastSeen:Date.now()
 },{merge:true});
 
-// heartbeat
 setInterval(()=>{
 updateDoc(doc(db,"users",uid),{
 lastSeen:Date.now(),
 isOnline:true
-}).catch(()=>{});
-},30000);
-
-// profile
-onSnapshot(doc(db,"users",uid),(s)=>{
-let u=s.data();
-if(!u) return;
-
-document.getElementById("myName").innerText = u.name || "User";
-document.getElementById("myDp").src = u.profilePic || "https://via.placeholder.com/50";
 });
+},30000);
 
 // users list
 onSnapshot(collection(db,"users"),(snap)=>{
@@ -118,7 +86,6 @@ let c=0;
 
 snap.forEach(d=>{
 let u=d.data();
-
 let online = u.lastSeen && (Date.now()-u.lastSeen < 120000);
 
 if(d.id !== uid && online){
@@ -126,13 +93,11 @@ c++;
 
 html += `
 <div class="user">
-<img src="${u.profilePic || 'https://via.placeholder.com/40'}" width="40">
-${u.name || "User"} - ₹${u.rate || 0}
+${u.name || "User"}
 <br>
-
-<button class="btn chat" onclick="chatUser('${d.id}','${u.name || "User"}')">Chat</button>
+<button class="btn chat" onclick="chatUser('${d.id}')">Chat</button>
 <button class="btn call" onclick="callUser('${d.id}')">Call</button>
-<button class="btn book" onclick="bookUser('${u.name || "User"}','${u.rate || 0}','${d.id}')">Book</button>
+<button class="btn book">Book</button>
 </div>`;
 }
 });
@@ -140,24 +105,18 @@ ${u.name || "User"} - ₹${u.rate || 0}
 document.getElementById("list").innerHTML = html;
 document.getElementById("count").innerText = c + " users online";
 });
-
 });
 
 // ================= CHAT =================
-window.chatUser = (id,name)=>{
-location.href="chat.html?id="+id+"&name="+encodeURIComponent(name || "User");
+window.chatUser = (id)=>{
+location.href="chat.html?id="+id;
 };
 
-// ================= CALL (🔥 FIXED FLOW) =================
+// ================= CALL FIX =================
 window.callUser = async(id)=>{
-
-if(!uid || !id) return;
-
-try{
 
 let room = [uid,id].sort().join("_");
 
-// 🔥 CALL CREATE
 await setDoc(doc(db,"calls",room),{
 caller:uid,
 receiver:id,
@@ -165,35 +124,11 @@ status:"calling",
 createdAt:Date.now()
 },{merge:true});
 
-// 🔥 FIXED CONNECT REDIRECT (IMPORTANT)
-location.href = "connect.html?room="+room+"&id="+uid+"&role=caller&to="+id;
-
-}catch(e){
-console.log("Call error:",e);
-alert("Call failed");
-}
-
-};
-
-// ================= BOOK =================
-window.bookUser = async(name,rate,id)=>{
-
-try{
-await setDoc(doc(db,"bookings","b_"+Date.now()),{
-bookerId:uid,
-targetId:id,
-targetName:name,
-amount:rate,
-status:"pending",
-time:Date.now()
-});
-
-alert("Booking Sent 🔥");
-
-}catch(e){
-alert("Booking failed");
-}
-
+location.href =
+"connect.html?room="+room+
+"&id="+uid+
+"&role=caller"+
+"&to="+id;
 };
 
 </script>
