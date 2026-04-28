@@ -3,83 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Video Call Connect</title>
+<title>Call</title>
 
 <style>
-body{
-background:#000;
-color:#fff;
-margin:0;
-font-family:sans-serif;
-overflow:hidden;
-}
-
-#ringBox{
-position:absolute;
-top:50%;
-left:50%;
-transform:translate(-50%,-50%);
-text-align:center;
-background:rgba(0,0,0,0.75);
-padding:20px;
-border-radius:15px;
-display:none;
-z-index:20;
-}
-
-button{
-padding:10px 20px;
-margin:10px;
-border:none;
-border-radius:8px;
-font-size:16px;
-}
-
+body{background:#000;color:#fff;margin:0;font-family:sans-serif;overflow:hidden}
+#ringBox{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.8);padding:20px;border-radius:10px;display:none}
+video{width:100%;height:100%;object-fit:cover;position:absolute}
+#local{width:120px;height:160px;position:absolute;top:20px;right:20px;border:2px solid #fff;border-radius:10px}
+button{padding:10px;margin:5px}
 .accept{background:green;color:#fff}
 .reject{background:red;color:#fff}
-
-video{
-position:absolute;
-width:100%;
-height:100%;
-object-fit:cover;
-background:#000;
-}
-
-#local{
-width:120px;
-height:160px;
-position:absolute;
-top:20px;
-right:20px;
-border:2px solid #fff;
-border-radius:10px;
-object-fit:cover;
-z-index:10;
-}
-
-#controls{
-position:absolute;
-bottom:20px;
-left:50%;
-transform:translateX(-50%);
-z-index:15;
-}
-
-.ctrlBtn{
-background:#222;
-color:#fff;
-padding:10px;
-border-radius:50%;
-margin:5px;
-}
 </style>
 </head>
 
 <body>
 
 <div id="ringBox">
-<h2 id="statusText">Incoming Call...</h2>
+<h3>Incoming Call</h3>
 <button class="accept" onclick="acceptCall()">Accept</button>
 <button class="reject" onclick="rejectCall()">Reject</button>
 </div>
@@ -87,95 +27,73 @@ margin:5px;
 <video id="remote" autoplay playsinline></video>
 <video id="local" autoplay playsinline muted></video>
 
-<div id="controls">
-<button class="ctrlBtn" onclick="switchCamera()">🔄</button>
-<button class="ctrlBtn" onclick="endCall()">❌</button>
-</div>
-
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import {
 getFirestore,
 doc,
-setDoc,
 getDoc,
+setDoc,
 updateDoc,
 onSnapshot,
 collection,
 addDoc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// 🔥 FIREBASE CONFIG
-const app = initializeApp({
-apiKey:"YOUR_API_KEY",
-authDomain:"YOUR_AUTH_DOMAIN",
-projectId:"YOUR_PROJECT_ID"
-});
+// 🔥 FIREBASE
+const firebaseConfig = {
+apiKey:"AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
+authDomain:"sykolive-846a3.firebaseapp.com",
+projectId:"sykolive-846a3"
+};
 
+const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// ================= URL =================
-const params = new URLSearchParams(location.search);
+// ================= PARAMS =================
+const p = new URLSearchParams(location.search);
 
-const roomId = params.get("room");
-const myId = params.get("id");
-const role = params.get("role");
-const to = params.get("to");
+const roomId = p.get("room");
+const myId = p.get("id");
+const role = p.get("role");
+const to = p.get("to");
 
 const roomRef = doc(db,"calls",roomId);
 
-// ================= WEBRTC =================
 const pc = new RTCPeerConnection({
 iceServers:[{urls:"stun:stun.l.google.com:19302"}]
 });
 
-let localStream;
-let facingMode = "user";
-let receiverReady = false;
+let stream;
 
-// ================= SAFE SNAPSHOT =================
+// ================= LISTEN =================
 onSnapshot(roomRef,(snap)=>{
 
 if(!snap.exists()) return;
 
-const data = snap.data();
+let data = snap.data();
 
-// 🔔 RECEIVER POPUP FIX
-if(role === "receiver" && data.status === "calling" && myId === data.receiver){
+if(role==="receiver" && data.status==="calling"){
 document.getElementById("ringBox").style.display="block";
-document.getElementById("statusText").innerText =
-"📞 Call from " + data.caller;
 }
 
-// ❌ END / REJECT
-if(data.status === "rejected" || data.status === "ended"){
+if(data.status==="rejected" || data.status==="ended"){
 location.href="live.html";
 }
 
-// 🔥 CALLER CONNECT AFTER ACCEPT
-if(role === "caller" && data.status === "accepted"){
-startCallerWebRTC();
+if(role==="caller" && data.status==="accepted"){
+startCaller();
 }
-
-// 🔥 SAFE ANSWER HANDLING
-if(data.answer && pc.signalingState !== "stable" && role === "caller"){
-pc.setRemoteDescription(data.answer);
-}
-
 });
 
 // ================= CALLER =================
-async function startCallerWebRTC(){
+async function startCaller(){
 
-localStream = await navigator.mediaDevices.getUserMedia({
-video:{facingMode},
-audio:true
-});
+stream = await navigator.mediaDevices.getUserMedia({video:true,audio:true});
+document.getElementById("local").srcObject = stream;
 
-document.getElementById("local").srcObject = localStream;
-
-localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));
+stream.getTracks().forEach(t=>pc.addTrack(t,stream));
 
 pc.onicecandidate = async(e)=>{
 if(e.candidate){
@@ -185,15 +103,12 @@ candidate:e.candidate.toJSON()
 }
 };
 
-const offer = await pc.createOffer();
+let offer = await pc.createOffer();
 await pc.setLocalDescription(offer);
 
 await setDoc(roomRef,{
-caller:myId,
-receiver:to,
-status:"calling",
 offer:offer
-});
+},{merge:true});
 
 pc.ontrack = (e)=>{
 document.getElementById("remote").srcObject = e.streams[0];
@@ -201,90 +116,41 @@ document.getElementById("remote").srcObject = e.streams[0];
 }
 
 // ================= RECEIVER =================
-async function startReceiverWebRTC(){
+async function startReceiver(){
 
-if(receiverReady) return;
-receiverReady = true;
+stream = await navigator.mediaDevices.getUserMedia({video:true,audio:true});
+document.getElementById("local").srcObject = stream;
 
-localStream = await navigator.mediaDevices.getUserMedia({
-video:{facingMode},
-audio:true
-});
+stream.getTracks().forEach(t=>pc.addTrack(t,stream));
 
-document.getElementById("local").srcObject = localStream;
-
-localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));
-
-pc.onicecandidate = async(e)=>{
-if(e.candidate){
-await addDoc(collection(roomRef,"calleeCandidates"),{
-candidate:e.candidate.toJSON()
-});
-}
-};
-
-// 🔥 SAFE OFFER HANDLING
-const snap = await getDoc(roomRef);
-const data = snap.data();
-
-if(data?.offer && pc.signalingState === "stable"){
+let snap = await getDoc(roomRef);
+let data = snap.data();
 
 await pc.setRemoteDescription(data.offer);
 
-const answer = await pc.createAnswer();
+let answer = await pc.createAnswer();
 await pc.setLocalDescription(answer);
 
 await updateDoc(roomRef,{
 answer:answer,
 status:"accepted"
 });
-}
 
 pc.ontrack = (e)=>{
 document.getElementById("remote").srcObject = e.streams[0];
 };
 }
 
-// ================= ACCEPT =================
+// ================= BUTTONS =================
 window.acceptCall = async()=>{
-
 document.getElementById("ringBox").style.display="none";
-
-// 🔥 FIRST INIT STREAM THEN CONNECT
-await startReceiverWebRTC();
-
-await updateDoc(roomRef,{status:"accepted"});
+await startReceiver();
 };
 
-// ================= REJECT =================
 window.rejectCall = async()=>{
 await updateDoc(roomRef,{status:"rejected"});
 location.href="live.html";
 };
-
-// ================= END CALL =================
-window.endCall = async()=>{
-await updateDoc(roomRef,{status:"ended"});
-location.href="live.html";
-};
-
-// ================= CAMERA SWITCH =================
-window.switchCamera = async()=>{
-
-facingMode = (facingMode === "user") ? "environment" : "user";
-
-if(localStream){
-localStream.getTracks().forEach(t=>t.stop());
-}
-
-if(role === "caller") startCallerWebRTC();
-else startReceiverWebRTC();
-};
-
-// ================= AUTO START CALLER =================
-if(role === "caller"){
-startCallerWebRTC();
-}
 
 </script>
 
