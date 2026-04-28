@@ -1,92 +1,76 @@
-<!DOCTYPE html>
-<html lang="kn">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Booking History - SykoLive</title>
-    <style>
-        body { background: #0b141a; color: white; font-family: sans-serif; margin: 0; padding: 20px; }
-        .header { text-align: center; margin-bottom: 20px; border-bottom: 1px solid #222; padding-bottom: 10px; }
-        .booking-card {
-            background: #111b21; border: 1px solid #232d36;
-            padding: 15px; border-radius: 12px; margin-bottom: 15px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        }
-        .row { display: flex; justify-content: space-between; margin-bottom: 8px; }
-        .label { color: #8696a0; font-size: 14px; }
-        .value { color: #e9edef; font-weight: bold; }
-        .amount { color: #1fa855; font-size: 18px; }
-        .status { background: #00a884; color: white; padding: 2px 8px; border-radius: 5px; font-size: 12px; }
-        .no-data { text-align: center; color: #8696a0; margin-top: 50px; }
-    </style>
-</head>
-<body>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, collection, onSnapshot, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-    <div class="header">
-        <h2>ಬುಕಿಂಗ್ ಇತಿಹಾಸ (Bookings)</h2>
-        <p style="font-size: 12px; color: #00a884;">ನಿಮ್ಮ ಎಲ್ಲಾ ವಹಿವಾಟುಗಳ ವಿವರಗಳು ಇಲ್ಲಿವೆ</p>
+const app = initializeApp({
+ apiKey:"AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
+ authDomain:"sykolive-846a3.firebaseapp.com",
+ projectId:"sykolive-846a3"
+});
+
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+let unsubscribe;
+
+// 🔐 LOGIN CHECK
+onAuthStateChanged(auth, user => {
+ if (!user) {
+  location.href = "index.html";
+  return;
+ }
+
+ // 🔥 ONLY MY BOOKINGS
+ const q = query(
+  collection(db, "bookings"),
+  where("bookerId","==", user.uid),
+  orderBy("time","desc")
+ );
+
+ // prevent duplicate listener
+ if(unsubscribe) unsubscribe();
+
+ unsubscribe = onSnapshot(q, (snap) => {
+
+  let html = "";
+
+  if (snap.empty) {
+   html = "<div class='no-data'>ಯಾವುದೇ ಬುಕಿಂಗ್‌ಗಳು ಕಂಡುಬಂದಿಲ್ಲ.</div>";
+  }
+
+  snap.forEach(doc => {
+   const b = doc.data();
+
+   html += `
+    <div class="booking-card">
+     <div class="row">
+      <span class="label">ಬುಕ್ ಮಾಡಿದವರು:</span>
+      <span class="value">${b.bookerName || "User"}</span>
+     </div>
+
+     <div class="row">
+      <span class="label">ಯಾರನ್ನು ಬುಕ್ ಮಾಡಲಾಗಿದೆ:</span>
+      <span class="value" style="color:#ff007f;">
+       ${b.targetName || "Unknown"}
+      </span>
+     </div>
+
+     <div class="row">
+      <span class="label">ಸಮಯ:</span>
+      <span class="value">${b.time || "-"}</span>
+     </div>
+
+     <div class="row" style="border-top:1px solid #232d36;padding-top:8px;margin-top:8px;">
+      <span class="status">${b.status || "Done"}</span>
+      <span class="amount">₹${b.amount || 0}</span>
+     </div>
     </div>
+   `;
+  });
 
-    <div id="bookingList">
-        <p style="text-align: center;">ಲೋಡ್ ಆಗುತ್ತಿದೆ...</p>
-    </div>
+  document.getElementById("bookingList").innerHTML = html;
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
-            authDomain: "sykolive-846a3.firebaseapp.com",
-            projectId: "sykolive-846a3"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-
-        onAuthStateChanged(auth, user => {
-            if (!user) {
-                location.href = "index.html";
-                return;
-            }
-
-            // ಬುಕಿಂಗ್ ಡೇಟಾವನ್ನು ಫೈರ್‌ಬೇಸ್‌ನಿಂದ ಪಡೆಯುವುದು
-            const q = query(collection(db, "bookings"), orderBy("time", "desc"));
-            
-            onSnapshot(q, (snap) => {
-                let html = "";
-                if (snap.empty) {
-                    html = "<div class='no-data'>ಯಾವುದೇ ಬುಕಿಂಗ್‌ಗಳು ಕಂಡುಬಂದಿಲ್ಲ.</div>";
-                }
-
-                snap.forEach(doc => {
-                    const b = doc.data();
-                    html += `
-                        <div class="booking-card">
-                            <div class="row">
-                                <span class="label">ಬುಕ್ ಮಾಡಿದವರು:</span>
-                                <span class="value">${b.bookerName}</span>
-                            </div>
-                            <div class="row">
-                                <span class="label">ಯಾರನ್ನು ಬುಕ್ ಮಾಡಲಾಗಿದೆ:</span>
-                                <span class="value" style="color: #ff007f;">${b.targetName}</span>
-                            </div>
-                            <div class="row">
-                                <span class="label">ಸಮಯ:</span>
-                                <span class="value">${b.time}</span>
-                            </div>
-                            <div class="row" style="border-top: 1px solid #232d36; padding-top: 8px; margin-top: 8px;">
-                                <span class="status">${b.status}</span>
-                                <span class="amount">₹${b.amount}</span>
-                            </div>
-                        </div>
-                    `;
-                });
-                document.getElementById("bookingList").innerHTML = html;
-            });
-        });
-    </script>
-</body>
-</html>
+ });
+});
+</script>
