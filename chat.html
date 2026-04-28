@@ -128,7 +128,7 @@ document.getElementById("status").innerText="Invalid chat user";
 return;
 }
 
-// 🔥 FIXED CHAT ID (MOST IMPORTANT)
+// 🔥 FIXED CHAT ID (MUST SAME BOTH USERS)
 chatId = uid < otherId
 ? uid + "_" + otherId
 : otherId + "_" + uid;
@@ -152,7 +152,7 @@ const u = snap.data();
 
 document.querySelector(".header").innerText="💬 " + (u.name || "Chat");
 
-// 🔥 ONLINE CHECK (2 min rule)
+// 🔥 ONLINE CHECK (2 MIN RULE)
 let online = u.lastSeen && (Date.now() - u.lastSeen < 2*60*1000);
 
 document.getElementById("status").innerText =
@@ -164,7 +164,7 @@ console.log(e);
 }
 
 
-// 📩 LOAD MESSAGES (REALTIME FIXED)
+// 📩 LOAD MESSAGES (RIGHT/LEFT FIXED)
 function loadMessages(){
 
 const q = query(
@@ -178,8 +178,11 @@ let html="";
 snap.forEach(d=>{
 let m = d.data();
 
+// 🔥 IMPORTANT FIX (RIGHT / LEFT)
+let isMe = m.sender === uid;
+
 html += `
-<div class="msg ${m.sender === uid ? 'me' : 'other'}">
+<div class="msg ${isMe ? 'me' : 'other'}">
 ${m.text}
 </div>`;
 });
@@ -191,7 +194,7 @@ box.scrollTop = box.scrollHeight;
 }
 
 
-// ✉ SEND MESSAGE (FIXED)
+// ✉ SEND MESSAGE
 window.sendMsg = async()=>{
 
 let input = document.getElementById("msg");
