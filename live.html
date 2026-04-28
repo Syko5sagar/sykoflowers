@@ -148,7 +148,7 @@ window.chatUser = (id,name)=>{
 location.href="chat.html?id="+id+"&name="+encodeURIComponent(name || "User");
 };
 
-// ================= CALL (FINAL SAFE FIX) =================
+// ================= CALL (🔥 FIXED FLOW) =================
 window.callUser = async(id)=>{
 
 if(!uid || !id) return;
@@ -157,6 +157,7 @@ try{
 
 let room = [uid,id].sort().join("_");
 
+// 🔥 CALL CREATE
 await setDoc(doc(db,"calls",room),{
 caller:uid,
 receiver:id,
@@ -164,8 +165,8 @@ status:"calling",
 createdAt:Date.now()
 },{merge:true});
 
-// 🔥 IMPORTANT: this file MUST exist
-location.href = "connect.html?room=" + room + "&caller=true";
+// 🔥 FIXED CONNECT REDIRECT (IMPORTANT)
+location.href = "connect.html?room="+room+"&id="+uid+"&role=caller&to="+id;
 
 }catch(e){
 console.log("Call error:",e);
