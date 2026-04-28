@@ -32,6 +32,7 @@ background:#111;margin:10px;padding:10px;border-radius:10px;
 
 .btn{
 padding:5px 8px;margin:3px;border:none;border-radius:5px;color:#fff;
+cursor:pointer;
 }
 .chat{background:green}
 .call{background:blue}
@@ -59,8 +60,7 @@ collection,
 onSnapshot,
 doc,
 updateDoc,
-setDoc,
-getDoc
+setDoc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 import {
@@ -88,7 +88,7 @@ return;
 
 uid = user.uid;
 
-// 🔥 SAFE ONLINE UPDATE (NO CRASH)
+// 🔥 SAFE ONLINE UPDATE
 try{
 await setDoc(doc(db,"users",uid),{
 isOnline:true,
@@ -96,7 +96,7 @@ lastSeen:Date.now()
 },{merge:true});
 }catch(e){}
 
-// 🔥 HEARTBEAT FIX
+// 🔥 HEARTBEAT
 setInterval(()=>{
 updateDoc(doc(db,"users",uid),{
 lastSeen:Date.now(),
@@ -104,7 +104,7 @@ isOnline:true
 }).catch(()=>{});
 },30000);
 
-// ================= MY PROFILE =================
+// ================= PROFILE =================
 onSnapshot(doc(db,"users",uid),(s)=>{
 let u=s.data();
 if(!u) return;
@@ -121,7 +121,7 @@ let c=0;
 snap.forEach(d=>{
 let u=d.data();
 
-// 🔥 2 MIN ONLINE RULE
+// 🔥 ONLINE CHECK
 let online = u.lastSeen && (Date.now() - u.lastSeen < 120000);
 
 if(d.id !== uid && online){
@@ -130,12 +130,12 @@ c++;
 html += `
 <div class="user">
 <img src="${u.profilePic || 'https://via.placeholder.com/40'}" width="40">
-${u.name} - ₹${u.rate || 0}
+${u.name || "User"} - ₹${u.rate || 0}
 <br>
 
-<button class="btn chat" onclick="chatUser('${d.id}','${u.name}')">Chat</button>
+<button class="btn chat" onclick="chatUser('${d.id}','${u.name || "User"}')">Chat</button>
 <button class="btn call" onclick="callUser('${d.id}')">Call</button>
-<button class="btn book" onclick="bookUser('${u.name}','${u.rate || 0}','${d.id}')">Book</button>
+<button class="btn book" onclick="bookUser('${u.name || "User"}','${u.rate || 0}','${d.id}')">Book</button>
 </div>`;
 }
 });
@@ -148,10 +148,10 @@ document.getElementById("count").innerText = c + " users online";
 
 // ================= CHAT =================
 window.chatUser = (id,name)=>{
-location.href = "chat.html?id=" + id + "&name=" + encodeURIComponent(name);
+location.href = "chat.html?id=" + id + "&name=" + encodeURIComponent(name || "User");
 };
 
-// ================= CALL (FIXED ROOM SAFE) =================
+// ================= CALL =================
 window.callUser = async(id)=>{
 
 if(!uid || !id) return;
@@ -167,6 +167,7 @@ time:Date.now()
 },{merge:true});
 }catch(e){
 console.log("Call error",e);
+return;
 }
 
 location.href = "call.html?room=" + room + "&caller=true";
