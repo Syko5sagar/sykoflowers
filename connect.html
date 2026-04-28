@@ -107,21 +107,23 @@ addDoc
 
 const app = initializeApp({
 apiKey:"YOUR_API_KEY",
-authDomain:"YOUR_AUTH",
+authDomain:"YOUR_AUTH_DOMAIN",
 projectId:"YOUR_PROJECT_ID"
 });
 
 const db = getFirestore(app);
 
+// ================= URL PARAMS =================
 const params = new URLSearchParams(location.search);
 
 const roomId = params.get("room");
 const myId = params.get("id");
-const role = params.get("role");
+const role = params.get("role");   // caller / receiver
 const to = params.get("to");
 
 const roomRef = doc(db,"calls",roomId);
 
+// ================= WEBRTC =================
 const pc = new RTCPeerConnection({
 iceServers:[{urls:"stun:stun.l.google.com:19302"}]
 });
@@ -129,24 +131,32 @@ iceServers:[{urls:"stun:stun.l.google.com:19302"}]
 let localStream;
 let facingMode = "user";
 
-// ================= SHOW ONLY RECEIVER POPUP =================
+// ================= FIREBASE LISTENER =================
 onSnapshot(roomRef,(snap)=>{
 const data = snap.data();
 if(!data) return;
 
-// 🔥 IMPORTANT FIX: only receiver sees popup
+// 🔔 ONLY RECEIVER SEES CALL
 if(role === "receiver" && data.status === "calling"){
 document.getElementById("ringBox").style.display="block";
 document.getElementById("statusText").innerText =
 "📞 Call from " + data.caller;
 }
 
+// ❌ REJECT → CALLER NOTIFY
 if(data.status === "rejected"){
+alert("❌ Call Not Connected");
 location.href="live.html";
 }
 
+// ❌ END CALL
 if(data.status === "ended"){
 location.href="live.html";
+}
+
+// ✅ ACCEPT → CALLER AUTO CONNECT
+if(data.status === "accepted" && role === "caller"){
+startCallerWebRTC();
 }
 });
 
@@ -180,8 +190,10 @@ status:"calling",
 offer:offer
 });
 
+// 🔔 WAIT FOR ANSWER
 onSnapshot(roomRef,async(snap)=>{
 const data = snap.data();
+
 if(data?.answer && !pc.currentRemoteDescription){
 await pc.setRemoteDescription(data.answer);
 }
@@ -193,7 +205,7 @@ document.getElementById("remote").srcObject = e.streams[0];
 }
 
 // ================= RECEIVER START =================
-async function startReceiver(){
+async function startReceiverWebRTC(){
 
 localStream = await navigator.mediaDevices.getUserMedia({
 video:{facingMode},
@@ -236,7 +248,7 @@ document.getElementById("remote").srcObject = e.streams[0];
 window.acceptCall = async()=>{
 document.getElementById("ringBox").style.display="none";
 await updateDoc(roomRef,{status:"accepted"});
-startReceiver();
+startReceiverWebRTC();
 };
 
 // ================= REJECT =================
@@ -253,17 +265,21 @@ location.href="live.html";
 
 // ================= CAMERA SWITCH =================
 window.switchCamera = async()=>{
+
 facingMode = (facingMode === "user") ? "environment" : "user";
 
 if(localStream){
 localStream.getTracks().forEach(t=>t.stop());
 }
 
-if(role === "caller") startCaller();
-else startReceiver();
+if(role === "caller"){
+startCaller();
+}else{
+startReceiverWebRTC();
+}
 };
 
-// ================= AUTO START =================
+// ================= AUTO START CALLER =================
 if(role === "caller"){
 startCaller();
 }
