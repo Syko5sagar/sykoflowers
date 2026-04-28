@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Video Call</title>
+<title>Video Call Connect</title>
 
 <style>
 body{
@@ -105,6 +105,7 @@ collection,
 addDoc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+// 🔥 FIREBASE CONFIG
 const app = initializeApp({
 apiKey:"YOUR_API_KEY",
 authDomain:"YOUR_AUTH_DOMAIN",
@@ -113,12 +114,12 @@ projectId:"YOUR_PROJECT_ID"
 
 const db = getFirestore(app);
 
-// ================= URL PARAMS =================
+// ================= URL =================
 const params = new URLSearchParams(location.search);
 
 const roomId = params.get("room");
 const myId = params.get("id");
-const role = params.get("role");   // caller / receiver
+const role = params.get("role"); // caller / receiver
 const to = params.get("to");
 
 const roomRef = doc(db,"calls",roomId);
@@ -131,37 +132,32 @@ iceServers:[{urls:"stun:stun.l.google.com:19302"}]
 let localStream;
 let facingMode = "user";
 
-// ================= FIREBASE LISTENER =================
+// ================= SAFE SNAPSHOT =================
 onSnapshot(roomRef,(snap)=>{
-const data = snap.data();
-if(!data) return;
+if(!snap.exists()) return;
 
-// 🔔 ONLY RECEIVER SEES CALL
+const data = snap.data();
+
+// 🔔 ONLY RECEIVER POPUP
 if(role === "receiver" && data.status === "calling"){
 document.getElementById("ringBox").style.display="block";
 document.getElementById("statusText").innerText =
 "📞 Call from " + data.caller;
 }
 
-// ❌ REJECT → CALLER NOTIFY
-if(data.status === "rejected"){
-alert("❌ Call Not Connected");
+// ❌ REJECT / END → BACK
+if(data.status === "rejected" || data.status === "ended"){
 location.href="live.html";
 }
 
-// ❌ END CALL
-if(data.status === "ended"){
-location.href="live.html";
-}
-
-// ✅ ACCEPT → CALLER AUTO CONNECT
-if(data.status === "accepted" && role === "caller"){
+// ✅ CALLER CONNECT AFTER ACCEPT
+if(role === "caller" && data.status === "accepted"){
 startCallerWebRTC();
 }
 });
 
-// ================= CALLER START =================
-async function startCaller(){
+// ================= CALLER =================
+async function startCallerWebRTC(){
 
 localStream = await navigator.mediaDevices.getUserMedia({
 video:{facingMode},
@@ -174,7 +170,7 @@ localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));
 
 pc.onicecandidate = async(e)=>{
 if(e.candidate){
-await addDoc(collection(roomRef,"candidates"),{
+await addDoc(collection(roomRef,"callerCandidates"),{
 candidate:e.candidate.toJSON()
 });
 }
@@ -190,10 +186,8 @@ status:"calling",
 offer:offer
 });
 
-// 🔔 WAIT FOR ANSWER
 onSnapshot(roomRef,async(snap)=>{
 const data = snap.data();
-
 if(data?.answer && !pc.currentRemoteDescription){
 await pc.setRemoteDescription(data.answer);
 }
@@ -204,7 +198,7 @@ document.getElementById("remote").srcObject = e.streams[0];
 };
 }
 
-// ================= RECEIVER START =================
+// ================= RECEIVER =================
 async function startReceiverWebRTC(){
 
 localStream = await navigator.mediaDevices.getUserMedia({
@@ -218,7 +212,7 @@ localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));
 
 pc.onicecandidate = async(e)=>{
 if(e.candidate){
-await addDoc(collection(roomRef,"candidates"),{
+await addDoc(collection(roomRef,"calleeCandidates"),{
 candidate:e.candidate.toJSON()
 });
 }
@@ -273,7 +267,7 @@ localStream.getTracks().forEach(t=>t.stop());
 }
 
 if(role === "caller"){
-startCaller();
+startCallerWebRTC();
 }else{
 startReceiverWebRTC();
 }
@@ -281,7 +275,7 @@ startReceiverWebRTC();
 
 // ================= AUTO START CALLER =================
 if(role === "caller"){
-startCaller();
+startCallerWebRTC();
 }
 
 </script>
