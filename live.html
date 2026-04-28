@@ -1,6 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Live Users</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <style>
+    body {
+      font-family: Arial;
+      background: #0f0f0f;
+      color: #fff;
+      margin: 0;
+    }
+
+    /* 🔥 HEADER */
+    .header {
+      background: linear-gradient(45deg,#ff0066,#ff6600);
+      padding: 15px;
+      text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    /* 🔥 TOP USER PROFILE */
+    .top-profile {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      background: #1a1a1a;
+      border-bottom: 1px solid #333;
+    }
+
+    .top-profile img {
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      margin-right: 10px;
+    }
+
+    .top-profile .name {
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    #count {
+      text-align: center;
+      padding: 10px;
+      background: #222;
+    }
+
+    .user {
+      background: #1c1c1c;
+      margin: 12px;
+      padding: 12px;
+      border-radius: 12px;
+    }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .left {
+      display: flex;
+      align-items: center;
+    }
+
+    img {
+      width: 55px;
+      height: 55px;
+      border-radius: 50%;
+      margin-right: 10px;
+    }
+
+    .price {
+      color: #ff4081;
+      font-size: 14px;
+    }
+
+    button {
+      border: none;
+      padding: 8px 10px;
+      border-radius: 6px;
+      margin-left: 5px;
+      cursor: pointer;
+    }
+
+    .chat { background: #28a745; color: #fff; }
+    .call { background: #007bff; color: #fff; }
+
+    .book {
+      width: 100%;
+      margin-top: 10px;
+      padding: 12px;
+      font-size: 16px;
+      background: linear-gradient(45deg,#ff0066,#ff6600);
+      color: #fff;
+      font-weight: bold;
+    }
+
+    #popup {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      background: #222;
+      padding: 15px;
+      border-radius: 10px;
+      display: none;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="header">🔥 RENT GF / BF ONLINE 🔥</div>
+
+<!-- 🔥 CURRENT USER PROFILE -->
+<div class="top-profile">
+  <img id="myDp" src="https://via.placeholder.com/50">
+  <div class="name" id="myName">Loading...</div>
+</div>
+
+<div id="count">Loading...</div>
+<div id="list"></div>
+
+<div id="popup">
+  <p id="caller"></p>
+  <button onclick="accept()">Accept</button>
+  <button onclick="reject()">Reject</button>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -20,110 +156,92 @@ onAuthStateChanged(auth, async (user) => {
 
  uid = user.uid;
 
- // ✅ FIX 1: user data create/update (MOST IMPORTANT)
+ // 🔥 TOP PROFILE SET
+ document.getElementById("myName").innerText = user.displayName || "User";
+ document.getElementById("myDp").src = user.photoURL || "https://via.placeholder.com/50";
+
+ // 🔥 SAVE USER
  await setDoc(doc(db, "users", uid), {
-  uid: uid,
+  uid,
   name: user.displayName || "User",
   profilePic: user.photoURL || "",
   age: 20,
-  rate: 10,
+  rate: 50,
   isOnline: true,
   lastSeen: serverTimestamp()
  }, { merge: true });
 
- // ✅ keep online update
- try {
-  await updateDoc(doc(db, "users", uid), {
-    isOnline: true,
-    lastSeen: serverTimestamp()
-  });
- } catch(e) {
-  console.log("Status update error", e);
- }
-
- // ✅ FIX 2: realtime user list (correct UID match)
+ // 🔥 USER LIST
  onSnapshot(collection(db, "users"), (snap) => {
   let html = "", count = 0;
 
   snap.forEach((d) => {
    let u = d.data();
 
-   // 🔥 MAIN FIX HERE
-   if(d.id !== uid && u.isOnline === true) {
+   if(d.id !== uid && u.isOnline) {
     count++;
 
     html += `
     <div class="user">
-      <div class="top-section">
+      <div class="top">
         <div class="left">
           <img src="${u.profilePic || 'https://via.placeholder.com/50'}">
           <div>
-            <div class="name">${u.name}</div>
-            <div class="age">${u.age} yrs • ₹${u.rate}</div>
+            <div>${u.name}</div>
+            <div class="price">₹${u.rate}/min</div>
           </div>
         </div>
-        <div class="actions">
-          <button class="chat" onclick="chatUser('${d.id}','${u.name}')">
-            <i class="fa-solid fa-message"></i>
-          </button>
-          <button class="call" onclick="callUser('${d.id}')">
-            <i class="fa-solid fa-video"></i>
-          </button>
+
+        <div>
+          <button class="chat" onclick="chatUser('${d.id}','${u.name}')">💬</button>
+          <button class="call" onclick="callUser('${d.id}')">📞</button>
         </div>
       </div>
-      <button class="big-book-btn" onclick="bookUser('${u.name}','${u.rate}','${d.id}')">
-        <i class="fa-solid fa-calendar-check"></i> BOOK NOW (₹${u.rate})
+
+      <button class="book" onclick="bookUser('${u.name}','${u.rate}','${d.id}')">
+        💖 BOOK NOW (₹${u.rate})
       </button>
     </div>`;
    }
   });
 
-  document.getElementById("list").innerHTML = html || "<p style='text-align:center; padding:20px;'>ಯಾರೂ ಆನ್‌ಲೈನ್ ಇಲ್ಲ...</p>";
-  document.getElementById("count").innerText = count + " online";
+  document.getElementById("list").innerHTML = html;
+  document.getElementById("count").innerText = count + " ONLINE";
  });
 
- // ✅ call listener (unchanged)
+ // 🔥 CALL LISTENER
  onSnapshot(doc(db, "calls", uid), (snap) => {
   if(snap.exists()){
    callData = snap.data();
    document.getElementById("popup").style.display = "block";
-   document.getElementById("caller").innerText = "Incoming Call...";
+   document.getElementById("caller").innerText = "📞 Incoming Call...";
   }
  });
 });
 
-// ✅ booking (unchanged)
-window.bookUser = async (targetName, rate, targetUid) => {
- try {
-  const bookingId = "book_" + Date.now();
-  await setDoc(doc(db, "bookings", bookingId), {
-   bookerName: auth.currentUser.displayName || "User",
-   bookerId: uid,
-   targetName: targetName,
-   targetId: targetUid,
-   amount: rate,
-   time: new Date().toLocaleString(),
-   status: "Confirmed"
-  });
-  alert("Booking Successful for " + targetName);
- } catch (error) {
-  alert("Error in booking!");
- }
+// باقي functions same
+window.bookUser = async (name, rate, targetUid) => {
+ let id = "book_" + Date.now();
+ await setDoc(doc(db, "bookings", id), {
+  user: uid,
+  target: targetUid,
+  name,
+  amount: rate,
+  time: new Date().toLocaleString()
+ });
+ alert("Booked " + name);
 };
 
-// ✅ call system (working)
 window.callUser = async(id) => {
  let room = "room_" + Date.now();
- await setDoc(doc(db, "calls", id), { from: uid, room: room });
+ await setDoc(doc(db, "calls", id), { from: uid, room });
  location.href = `connect.html?room=${room}&caller=true`;
 };
 
-// ✅ chat system (working)
 window.chatUser = (id, name) => {
  location.href = `chat.html?id=${id}&name=${name}`;
 };
 
-// ✅ accept/reject
 window.accept = () => {
  location.href = `connect.html?room=${callData.room}`;
 };
@@ -132,14 +250,7 @@ window.reject = async() => {
  await deleteDoc(doc(db, "calls", uid));
  document.getElementById("popup").style.display = "none";
 };
-
-// ✅ FIX 3: offline status
-window.addEventListener("beforeunload", async () => {
- try {
-  await updateDoc(doc(db, "users", uid), {
-   isOnline: false,
-   lastSeen: serverTimestamp()
-  });
- } catch(e){}
-});
 </script>
+
+</body>
+</html>
