@@ -1,214 +1,191 @@
 <!DOCTYPE html>
 <html lang="kn">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WhatsApp Style Call - SykoLive</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #0b141a; font-family: sans-serif; overflow: hidden; height: 100vh; display: flex; align-items: center; justify-content: center; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video Call</title>
 
-        #lighting-edge {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; border: 0px solid transparent; transition: border 0.1s ease; z-index: 10;
-        }
-
-        #remote { width: 100%; height: 100%; object-fit: cover; position: absolute; }
-        #local { 
-            position: absolute; top: 20px; right: 20px; width: 110px; height: 160px; 
-            border-radius: 12px; object-fit: cover; border: 2px solid #fff; z-index: 5;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-        }
-
-        /* ಫಿಲ್ಟರ್ ಬಾಕ್ಸ್ ವಿನ್ಯಾಸ */
-        .filter-box {
-            position: absolute; bottom: 110px; left: 50%; transform: translateX(-50%);
-            width: 90%; max-width: 400px; background: rgba(11, 20, 26, 0.95);
-            border-radius: 20px; padding: 15px; display: none; z-index: 30;
-            border: 1px solid #232d36; box-shadow: 0 -5px 25px rgba(0,0,0,0.8);
-        }
-        .filter-header { display: flex; justify-content: space-between; margin-bottom: 10px; color: #fff; font-size: 14px; }
-        .filter-grid {
-            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
-            max-height: 250px; overflow-y: auto; padding-right: 5px;
-        }
-        .filter-item {
-            aspect-ratio: 1; background: #232d36; border-radius: 10px;
-            border: 1px solid #3b4a54; cursor: pointer; display: flex;
-            align-items: center; justify-content: center; font-size: 11px; color: #aebac1;
-        }
-        .filter-item:active { background: #00a884; color: white; }
-
-        .controls {
-            position: absolute; bottom: 30px; width: 100%; display: flex;
-            justify-content: center; gap: 25px; align-items: center; z-index: 20;
-        }
-        .btn {
-            width: 55px; height: 55px; border-radius: 50%; border: none;
-            display: flex; align-items: center; justify-content: center; cursor: pointer;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        }
-        .end-call { background: #ff3b30; color: white; font-size: 28px; }
-        .action-btn { background: rgba(255,255,255,0.15); color: white; font-size: 22px; backdrop-filter: blur(10px); }
-        
-        /* Scrollbar styling for filters */
-        .filter-grid::-webkit-scrollbar { width: 4px; }
-        .filter-grid::-webkit-scrollbar-thumb { background: #3b4a54; border-radius: 10px; }
-    </style>
+<style>
+body{background:#000;margin:0;overflow:hidden}
+video{position:absolute;width:100%;height:100%;object-fit:cover}
+#local{
+ width:110px;height:150px;
+ position:absolute;top:20px;right:20px;
+ border-radius:10px;border:2px solid #fff;
+}
+.controls{
+ position:absolute;bottom:30px;width:100%;
+ display:flex;justify-content:center;gap:20px;
+}
+button{
+ width:60px;height:60px;border-radius:50%;
+ border:none;font-size:20px;
+}
+.end{background:red;color:#fff;}
+.action{background:#333;color:#fff;}
+</style>
 </head>
+
 <body>
 
-    <div id="lighting-edge"></div>
+<video id="remote" autoplay playsinline></video>
+<video id="local" autoplay playsinline muted></video>
 
-    <video id="remote" autoplay playsinline></video>
-    <video id="local" autoplay playsinline muted></video>
+<div class="controls">
+ <button class="action" onclick="switchCamera()">🔄</button>
+ <button class="end" onclick="endCall()">📞</button>
+</div>
 
-    <div class="filter-box" id="filterBox">
-        <div class="filter-header">
-            <span>ವಿಡಿಯೋ ಫಿಲ್ಟರ್‌ಗಳು</span>
-            <span onclick="toggleFilters()" style="cursor:pointer; color:#00a884;">ಮುಚ್ಚು</span>
-        </div>
-        <div class="filter-grid" id="filterGrid">
-            <div class="filter-item" onclick="applyFilter('none')">ಮೂಲ</div>
-        </div>
-    </div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    <div class="controls">
-        <button class="btn action-btn" onclick="toggleFilters()">🎨</button>
-        <button class="btn action-btn" onclick="switchCamera()">🔄</button>
-        <button class="btn end-call" onclick="exitCall()">📞</button>
-    </div>
+const app = initializeApp({
+ apiKey:"AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
+ authDomain:"sykolive-846a3.firebaseapp.com",
+ projectId:"sykolive-846a3"
+});
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+const db = getFirestore(app);
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
-            authDomain: "sykolive-846a3.firebaseapp.com",
-            projectId: "sykolive-846a3",
-            storageBucket: "sykolive-846a3.firebasestorage.app",
-            messagingSenderId: "705797986997",
-            appId: "1:705797986997:web:70c8263e3f712758bdbcfc"
-        };
+const pc = new RTCPeerConnection({
+ iceServers:[{urls:"stun:stun.l.google.com:19302"}]
+});
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+let localStream;
+let useFront = true;
 
-        let localStream;
-        let useFrontCamera = true;
-        const params = new URLSearchParams(window.location.search);
-        const roomId = params.get("room");
-        const isCaller = params.get("caller") === "true";
+// URL params
+const params = new URLSearchParams(location.search);
+const roomId = params.get("room");
+const isCaller = params.get("caller") === "true";
 
-        // 🚪 ಕಾಲ್ ಕಟ್ ಮಾಡಿ ಲೈವ್ ಪುಟಕ್ಕೆ ಹೋಗುವುದು
-        window.exitCall = () => {
-            if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-            }
-            window.location.href = "live.html"; 
-        };
+const roomRef = doc(db,"rooms",roomId);
 
-        async function init() {
-            try {
-                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                document.getElementById("local").srcObject = localStream;
-                localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-                setupAudioVisualizer(localStream);
+// 🔥 CLEANUP FUNCTION
+async function cleanup(){
+ try{
+  await deleteDoc(roomRef);
+ }catch(e){}
+}
 
-                pc.ontrack = e => document.getElementById("remote").srcObject = e.streams[0];
+// 🎥 INIT
+async function init(){
+ try{
+  localStream = await navigator.mediaDevices.getUserMedia({
+   video:true,
+   audio:true
+  });
 
-                if (!roomId) return;
-                const roomRef = doc(db, "rooms", roomId);
+  local.srcObject = localStream;
 
-                pc.onicecandidate = e => {
-                    if (e.candidate) addDoc(collection(roomRef, isCaller ? "callerCandidates" : "calleeCandidates"), e.candidate.toJSON());
-                };
+  localStream.getTracks().forEach(track=>{
+   pc.addTrack(track, localStream);
+  });
 
-                if (isCaller) {
-                    const offer = await pc.createOffer();
-                    await pc.setLocalDescription(offer);
-                    await setDoc(roomRef, { offer: { type: offer.type, sdp: offer.sdp } });
-                    onSnapshot(roomRef, async snap => {
-                        const data = snap.data();
-                        if (data?.answer && !pc.currentRemoteDescription) await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-                    });
-                    onSnapshot(collection(roomRef, "calleeCandidates"), s => s.docChanges().forEach(c => { if (c.type === "added") pc.addIceCandidate(new RTCIceCandidate(c.doc.data())); }));
-                } else {
-                    onSnapshot(roomRef, async snap => {
-                        const data = snap.data();
-                        if (data?.offer && !pc.currentRemoteDescription) {
-                            await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-                            const answer = await pc.createAnswer();
-                            await pc.setLocalDescription(answer);
-                            await updateDoc(roomRef, { answer: { type: answer.type, sdp: answer.sdp } });
-                        }
-                    });
-                    onSnapshot(collection(roomRef, "callerCandidates"), s => s.docChanges().forEach(c => { if (c.type === "added") pc.addIceCandidate(new RTCIceCandidate(c.doc.data())); }));
-                }
-            } catch (err) {
-                console.error("Camera error:", err);
-                alert("ಕ್ಯಾಮೆರಾ ಓಪನ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗುತ್ತಿಲ್ಲ.");
-            }
-        }
+  pc.ontrack = e=>{
+   remote.srcObject = e.streams[0];
+  };
 
-        window.switchCamera = async () => {
-            useFrontCamera = !useFrontCamera;
-            localStream.getTracks().forEach(track => track.stop());
-            localStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: useFrontCamera ? "user" : "environment" },
-                audio: true
-            });
-            const videoTrack = localStream.getVideoTracks()[0];
-            const sender = pc.getSenders().find(s => s.track.kind === "video");
-            sender.replaceTrack(videoTrack);
-            document.getElementById("local").srcObject = localStream;
-        };
+  // ICE
+  pc.onicecandidate = e=>{
+   if(e.candidate){
+    addDoc(collection(roomRef, isCaller ? "callerCandidates" : "calleeCandidates"), e.candidate.toJSON());
+   }
+  };
 
-        // 🎨 50 ಫಿಲ್ಟರ್‌ಗಳನ್ನು ಬಾಕ್ಸ್‌ಗೆ ತುಂಬುವುದು
-        const effects = ["grayscale", "sepia", "invert", "blur", "brightness", "contrast", "hue-rotate", "saturate"];
-        const grid = document.getElementById("filterGrid");
-        for (let i = 1; i <= 50; i++) {
-            const item = document.createElement("div");
-            item.className = "filter-item";
-            const val = effects[i % effects.length] + "(" + (i * 8) + (i % 2 === 0 ? "deg" : "%") + ")";
-            item.innerText = "F" + i;
-            item.onclick = () => applyFilter(val);
-            grid.appendChild(item);
-        }
+  if(isCaller){
 
-        window.applyFilter = (f) => { document.getElementById("local").style.filter = f; };
-        window.toggleFilters = () => {
-            const box = document.getElementById("filterBox");
-            box.style.display = box.style.display === "block" ? "none" : "block";
-        };
+   const offer = await pc.createOffer();
+   await pc.setLocalDescription(offer);
 
-        function setupAudioVisualizer(stream) {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const source = audioContext.createMediaStreamSource(stream);
-            const analyzer = audioContext.createAnalyser();
-            analyzer.fftSize = 64;
-            source.connect(analyzer);
-            const dataArray = new Uint8Array(analyzer.frequencyBinCount);
-            const light = document.getElementById("lighting-edge");
+   await setDoc(roomRef,{
+    offer:{type:offer.type,sdp:offer.sdp}
+   });
 
-            function animate() {
-                analyzer.getByteFrequencyData(dataArray);
-                let avg = dataArray.reduce((a, b) => a + b) / dataArray.length;
-                if (avg > 25) {
-                    light.style.border = (avg/8) + "px solid hsl(" + avg*3 + ", 100%, 50%)";
-                    light.style.boxShadow = "inset 0 0 30px hsl(" + avg*3 + ", 100%, 50%)";
-                } else {
-                    light.style.border = "0px solid transparent";
-                    light.style.boxShadow = "none";
-                }
-                requestAnimationFrame(animate);
-            }
-            animate();
-        }
+   onSnapshot(roomRef, async(snap)=>{
+    const data = snap.data();
+    if(data?.answer && !pc.currentRemoteDescription){
+     await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+    }
+   });
 
-        init();
-    </script>
+   onSnapshot(collection(roomRef,"calleeCandidates"),snap=>{
+    snap.docChanges().forEach(c=>{
+     if(c.type==="added"){
+      pc.addIceCandidate(new RTCIceCandidate(c.doc.data()));
+     }
+    });
+   });
+
+  } else {
+
+   onSnapshot(roomRef, async(snap)=>{
+    const data = snap.data();
+
+    if(data?.offer && !pc.currentRemoteDescription){
+     await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+
+     const answer = await pc.createAnswer();
+     await pc.setLocalDescription(answer);
+
+     await updateDoc(roomRef,{
+      answer:{type:answer.type,sdp:answer.sdp}
+     });
+    }
+   });
+
+   onSnapshot(collection(roomRef,"callerCandidates"),snap=>{
+    snap.docChanges().forEach(c=>{
+     if(c.type==="added"){
+      pc.addIceCandidate(new RTCIceCandidate(c.doc.data()));
+     }
+    });
+   });
+
+  }
+
+ }catch(e){
+  alert("Camera error");
+ }
+}
+
+init();
+
+// 🔄 SWITCH CAMERA
+window.switchCamera = async ()=>{
+ useFront = !useFront;
+
+ localStream.getTracks().forEach(t=>t.stop());
+
+ localStream = await navigator.mediaDevices.getUserMedia({
+  video:{facingMode: useFront ? "user" : "environment"},
+  audio:true
+ });
+
+ const videoTrack = localStream.getVideoTracks()[0];
+ const sender = pc.getSenders().find(s=>s.track.kind==="video");
+
+ if(sender) sender.replaceTrack(videoTrack);
+
+ local.srcObject = localStream;
+};
+
+// 📞 END CALL
+window.endCall = async ()=>{
+ if(localStream){
+  localStream.getTracks().forEach(t=>t.stop());
+ }
+
+ await cleanup(); // 🔥 DELETE ROOM
+
+ location.href="live.html";
+};
+
+// 🔥 AUTO CLEANUP IF TAB CLOSED
+window.addEventListener("beforeunload",cleanup);
+
+</script>
+
 </body>
 </html>
