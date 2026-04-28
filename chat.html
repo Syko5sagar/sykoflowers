@@ -128,17 +128,15 @@ document.getElementById("status").innerText="Invalid chat user";
 return;
 }
 
-// 🔥 FIXED CHAT ID (MUST SAME BOTH USERS)
-chatId = uid < otherId
-? uid + "_" + otherId
-: otherId + "_" + uid;
+// 🔥 FINAL FIX CHAT ID (MOST IMPORTANT)
+chatId = [uid, otherId].sort().join("_");
 
 loadUser();
 loadMessages();
 });
 
 
-// 👤 HEADER + ONLINE STATUS
+// 👤 USER + ONLINE STATUS
 async function loadUser(){
 try{
 const snap = await getDoc(doc(db,"users",otherId));
@@ -164,7 +162,7 @@ console.log(e);
 }
 
 
-// 📩 LOAD MESSAGES (RIGHT/LEFT FIXED)
+// 📩 REAL TIME MESSAGES (FIXED)
 function loadMessages(){
 
 const q = query(
@@ -178,7 +176,7 @@ let html="";
 snap.forEach(d=>{
 let m = d.data();
 
-// 🔥 IMPORTANT FIX (RIGHT / LEFT)
+// 🔥 RIGHT / LEFT FIX
 let isMe = m.sender === uid;
 
 html += `
@@ -194,7 +192,7 @@ box.scrollTop = box.scrollHeight;
 }
 
 
-// ✉ SEND MESSAGE
+// ✉ SEND MESSAGE (FINAL FIX)
 window.sendMsg = async()=>{
 
 let input = document.getElementById("msg");
