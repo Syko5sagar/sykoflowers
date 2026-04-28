@@ -73,7 +73,7 @@ let uid;
 onAuthStateChanged(auth, async(user)=>{
 if(!user){ location.href="index.html"; return; }
 
-uid=user.uid;
+uid = user.uid;
 
 // 🟢 INITIAL ONLINE
 await updateDoc(doc(db,"users",uid),{
@@ -81,12 +81,12 @@ isOnline:true,
 lastSeen:Date.now()
 });
 
-// 🔥 HEARTBEAT (IMPORTANT FIX)
+// 🔥 HEARTBEAT (EVERY 30 SEC)
 setInterval(()=>{
 updateDoc(doc(db,"users",uid),{
 lastSeen:Date.now(),
 isOnline:true
-});
+}).catch(()=>{});
 },30000);
 
 // 👤 PROFILE
@@ -129,14 +129,16 @@ document.getElementById("count").innerText=c+" users online";
 
 });
 
-// 💬 CHAT
-window.chatUser=(id,name)=>{
-location.href=`chat.html?id=${id}&name=${name}`;
+
+// 💬 CHAT FIX (IMPORTANT ADDITION)
+window.chatUser = (id, name)=>{
+location.href = "chat.html?id=" + id + "&name=" + encodeURIComponent(name);
 };
 
+
 // 📞 CALL
-window.callUser=async(id)=>{
-let room=[uid,id].sort().join("_");
+window.callUser = async(id)=>{
+let room = [uid,id].sort().join("_");
 
 await setDoc(doc(db,"calls",room),{
 caller:uid,
@@ -145,11 +147,12 @@ status:"calling",
 time:Date.now()
 });
 
-location.href=`connect.html?room=${room}&caller=true`;
+location.href = `connect.html?room=${room}&caller=true`;
 };
 
+
 // 💰 BOOK
-window.bookUser=async(name,rate,id)=>{
+window.bookUser = async(name,rate,id)=>{
 await setDoc(doc(db,"bookings","b_"+Date.now()),{
 bookerId:uid,
 targetId:id,
