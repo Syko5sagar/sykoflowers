@@ -1,92 +1,67 @@
-<!DOCTYPE html>
-<html lang="kn">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SykoLive - Booking Chart</title>
-    <style>
-        body { background: #0b141a; color: white; font-family: sans-serif; margin: 0; padding: 15px; }
-        .header { 
-            background: #075e54; padding: 15px; text-align: center; 
-            font-size: 20px; font-weight: bold; border-radius: 0 0 20px 20px;
-            margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-        }
-        .chart-container { display: flex; flex-direction: column; gap: 12px; }
-        
-        /* ಬುಕಿಂಗ್ ಕಾರ್ಡ್ ವಿನ್ಯಾಸ */
-        .booking-item {
-            background: #111b21; border-left: 5px solid #ff3b30;
-            padding: 15px; border-radius: 10px; position: relative;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-        }
-        .info-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
-        .label { color: #8696a0; font-size: 13px; }
-        .name { color: #e9edef; font-weight: bold; font-size: 16px; }
-        .target { color: #00a884; font-weight: bold; }
-        .price { color: #ff3b30; font-size: 18px; font-weight: bold; }
-        .time { color: #667781; font-size: 11px; margin-top: 8px; display: block; }
-        
-        .no-data { text-align: center; margin-top: 100px; color: #8696a0; }
-        .status-badge {
-            background: rgba(31, 168, 85, 0.2); color: #1fa855;
-            padding: 3px 8px; border-radius: 5px; font-size: 12px;
-        }
-    </style>
-</head>
-<body>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, collection, onSnapshot, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-    <div class="header">
-        📊 ಬುಕಿಂಗ್ ಚಾರ್ಟ್ (Booking Chart)
+const app = initializeApp({
+ apiKey:"AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
+ authDomain:"sykolive-846a3.firebaseapp.com",
+ projectId:"sykolive-846a3"
+});
+
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+let unsubscribe;
+
+onAuthStateChanged(auth,user=>{
+ if(!user){
+  location.href="index.html";
+  return;
+ }
+
+ const q = query(
+  collection(db,"bookings"),
+  where("bookerId","==",user.uid),
+  orderBy("time","desc")
+ );
+
+ if(unsubscribe) unsubscribe();
+
+ unsubscribe = onSnapshot(q,(snap)=>{
+  let html="";
+
+  if(snap.empty){
+   html="<div class='no-data'>ಯಾವುದೇ ಬುಕಿಂಗ್ ಇಲ್ಲ</div>";
+  }
+
+  snap.forEach(doc=>{
+   const b=doc.data();
+
+   html+=`
+   <div class="booking-item">
+    <div class="info-row">
+     <span class="label">Booker</span>
+     <span class="status-badge">${b.status || "Done"}</span>
     </div>
 
-    <div class="chart-container" id="chartList">
-        <p style="text-align: center;">ಮಾಹಿತಿ ಪಡೆಯಲಾಗುತ್ತಿದೆ...</p>
+    <div class="info-row">
+     <span class="name">${b.bookerName || "User"}</span>
+     <span class="price">₹${b.amount || 0}</span>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    <div style="margin-top:10px;border-top:1px solid #232d36;padding-top:10px;">
+     <span class="label">Target:</span>
+     <span class="target">${b.targetName || "Unknown"}</span>
+    </div>
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
-            authDomain: "sykolive-846a3.firebaseapp.com",
-            projectId: "sykolive-846a3"
-        };
+    <span class="time">📅 ${b.time || "-"}</span>
+   </div>
+   `;
+  });
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+  chartList.innerHTML=html;
+ });
 
-        // ಬುಕಿಂಗ್ ಕಲೆಕ್ಷನ್‌ನಿಂದ ಲೇಟೆಸ್ಟ್ ಡೇಟಾ ಪಡೆಯುವುದು
-        const q = query(collection(db, "bookings"), orderBy("time", "desc"));
-
-        onSnapshot(q, (snap) => {
-            let html = "";
-            if (snap.empty) {
-                html = "<div class='no-data'>ಇನ್ನೂ ಯಾವುದೇ ಬುಕಿಂಗ್ ನಡೆದಿಲ್ಲ.</div>";
-            }
-
-            snap.forEach(doc => {
-                const b = doc.data();
-                html += `
-                    <div class="booking-item">
-                        <div class="info-row">
-                            <span class="label">ಬುಕ್ ಮಾಡಿದವರು (Booker)</span>
-                            <span class="status-badge">Confirmed</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="name">${b.bookerName}</span>
-                            <span class="price">₹${b.amount}</span>
-                        </div>
-                        <div style="margin-top: 10px; border-top: 1px solid #232d36; padding-top: 10px;">
-                            <span class="label">ಯಾರನ್ನು ಬುಕ್ ಮಾಡಲಾಗಿದೆ: </span>
-                            <span class="target">${b.targetName}</span>
-                        </div>
-                        <span class="time">📅 ${b.time}</span>
-                    </div>
-                `;
-            });
-            document.getElementById("chartList").innerHTML = html;
-        });
-    </script>
-</body>
-</html>
+});
+</script>
