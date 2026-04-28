@@ -67,33 +67,41 @@ const auth = getAuth(app);
 
 let uid;
 
+// 🔐 LOGIN
 onAuthStateChanged(auth,async(user)=>{
  if(!user){ location.href="index.html"; return;}
 
  uid=user.uid;
 
+ // 🟢 ONLINE STATUS
  await updateDoc(doc(db,"users",uid),{isOnline:true});
 
- // MY PROFILE
+ // 👤 MY PROFILE SHOW
  onSnapshot(doc(db,"users",uid),(s)=>{
   let u=s.data();
-  myName.innerText=u.name;
-  myDp.src=u.profilePic;
+  if(!u) return;
+  document.getElementById("myName").innerText = u.name || "User";
+  document.getElementById("myDp").src = u.profilePic || "https://via.placeholder.com/50";
  });
 
- // USERS
+ // 👥 USERS LIST
  onSnapshot(collection(db,"users"),(snap)=>{
   let html="",c=0;
 
   snap.forEach(d=>{
    let u=d.data();
-   if(d.id!==uid){
+
+   // 🔥 MAIN FIX (correct id check)
+   if(d.id !== uid && u.isOnline === true){
+
     c++;
+
     html+=`
     <div class="user">
-      <img src="${u.profilePic}" width="40">
+      <img src="${u.profilePic || 'https://via.placeholder.com/40'}" width="40">
       ${u.name} - ₹${u.rate}
       <br>
+
       <button class="btn chat" onclick="chatUser('${d.id}','${u.name}')">Chat</button>
       <button class="btn call" onclick="callUser('${d.id}')">Call</button>
       <button class="btn book" onclick="bookUser('${u.name}','${u.rate}','${d.id}')">Book</button>
@@ -101,27 +109,52 @@ onAuthStateChanged(auth,async(user)=>{
    }
   });
 
-  list.innerHTML=html;
-  count.innerText=c+" users online";
+  document.getElementById("list").innerHTML = html;
+  document.getElementById("count").innerText = c + " users online";
  });
 
 });
 
-// FUNCTIONS
-window.chatUser=(id,name)=>{
- location.href="chat.html?id="+id+"&name="+name;
+// 💬 CHAT
+window.chatUser = (id, name)=>{
+ location.href = `chat.html?id=${id}&name=${name}`;
 };
 
-window.callUser=async(id)=>{
- let room="room_"+Date.now();
- await setDoc(doc(db,"calls",id),{room});
- location.href="connect.html?room="+room;
+// 📞 CALL (FIXED ROOM)
+window.callUser = async(id)=>{
+ let room = [uid, id].sort().join("_");
+
+ await setDoc(doc(db,"calls",room),{
+  caller:uid,
+  receiver:id
+ });
+
+ location.href = `connect.html?room=${room}&caller=true`;
 };
 
-window.bookUser=async(name,rate,id)=>{
- await setDoc(doc(db,"bookings","b_"+Date.now()),{name,rate,id});
- alert("Booked "+name);
+// 💰 BOOKING
+window.bookUser = async(name,rate,id)=>{
+ const user = auth.currentUser;
+
+ await setDoc(doc(db,"bookings","b_"+Date.now()),{
+  bookerId:user.uid,
+  bookerName:user.displayName || "User",
+  targetId:id,
+  targetName:name,
+  amount:rate,
+  status:"pending",
+  time:new Date().toLocaleString()
+ });
+
+ alert("Booking Sent 🔥");
 };
+
+// 🔴 OFFLINE FIX
+window.addEventListener("beforeunload", async ()=>{
+ try{
+  await updateDoc(doc(db,"users",uid),{isOnline:false});
+ }catch(e){}
+});
 </script>
 
 </body>
