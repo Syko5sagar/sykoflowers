@@ -134,7 +134,7 @@ isOnline:true
 }).catch(()=>{});
 },30000);
 
-// 🔥 PROFILE FIX (DP)
+// PROFILE
 onSnapshot(doc(db,"users",uid),(s)=>{
 let u = s.data();
 if(!u) return;
@@ -144,7 +144,7 @@ document.getElementById("myDp").src =
 u.profilePic || "https://via.placeholder.com/50";
 });
 
-// ================= USERS LIST =================
+// USERS LIST
 onSnapshot(collection(db,"users"),(snap)=>{
 
 let html="";
@@ -185,17 +185,17 @@ document.getElementById("count").innerText = count + " users online";
 
 });
 
-// ================= CHAT =================
+// CHAT
 window.chatUser = (id)=>{
 location.href="chat.html?id="+id;
 };
 
-// ================= 🔥 CALL FIXED =================
-window.callUser = async(id)=>{
+// ================= 🔥 FIXED CALL =================
+window.callUser = async (id)=>{
 
 let room = [uid,id].sort().join("_");
 
-// create call
+// create call room
 await setDoc(doc(db,"calls",room),{
 caller:uid,
 receiver:id,
@@ -203,15 +203,15 @@ status:"calling",
 createdAt:Date.now()
 },{merge:true});
 
-// open connect page
+// 👉 SAFE REDIRECT (FIXED)
 location.href =
-"connect.html?room="+room+
-"&id="+uid+
-"&role=caller"+
-"&to="+id;
+"connect.html?room=" + encodeURIComponent(room) +
+"&id=" + encodeURIComponent(uid) +
+"&role=caller" +
+"&to=" + encodeURIComponent(id);
 };
 
-// ================= 🔥 BOOKING FIX =================
+// BOOKING
 window.bookUser = async(id,name,rate)=>{
 
 await setDoc(doc(db,"bookings","b_"+Date.now()),{
