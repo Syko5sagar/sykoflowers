@@ -1,31 +1,68 @@
 <!DOCTYPE html>
-<html lang="kn">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Call</title>
-
+<title>Connect Call</title>
 <style>
-body{background:#000;color:#fff;margin:0;font-family:sans-serif;overflow:hidden}
-#ringBox{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.8);padding:20px;border-radius:10px;display:none}
-video{width:100%;height:100%;object-fit:cover;position:absolute}
-#local{width:120px;height:160px;position:absolute;top:20px;right:20px;border:2px solid #fff;border-radius:10px}
-button{padding:10px;margin:5px}
-.accept{background:green;color:#fff}
-.reject{background:red;color:#fff}
+body{
+margin:0;
+background:#000;
+color:#fff;
+font-family:Arial;
+text-align:center;
+}
+
+header{
+padding:10px;
+background:linear-gradient(45deg,#ff0066,#ff6600);
+font-weight:bold;
+}
+
+video{
+width:45%;
+margin:10px;
+border:2px solid #00ff99;
+border-radius:10px;
+}
+
+#popup{
+position:fixed;
+top:0;left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.8);
+display:none;
+justify-content:center;
+align-items:center;
+}
+
+.box{
+background:#111;
+padding:20px;
+border-radius:10px;
+}
+button{
+padding:10px;
+margin:5px;
+}
 </style>
 </head>
 
 <body>
 
-<div id="ringBox">
-<h3>Incoming Call</h3>
-<button class="accept" onclick="acceptCall()">Accept</button>
-<button class="reject" onclick="rejectCall()">Reject</button>
-</div>
+<header>📞 CONNECTING CALL</header>
 
-<video id="remote" autoplay playsinline></video>
-<video id="local" autoplay playsinline muted></video>
+<video id="localVideo" autoplay muted playsinline></video>
+<video id="remoteVideo" autoplay playsinline></video>
+
+<div id="popup">
+<div class="box">
+<h3>📞 Incoming Call</h3>
+<p id="callerText"></p>
+<button onclick="acceptCall()">✅ Accept</button>
+<button onclick="rejectCall()">❌ Reject</button>
+</div>
+</div>
 
 <script type="module">
 
@@ -36,121 +73,155 @@ doc,
 getDoc,
 setDoc,
 updateDoc,
-onSnapshot,
-collection,
-addDoc
+onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// 🔥 FIREBASE
+import {
+getAuth,
+onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+/* 🔥 FIREBASE */
 const firebaseConfig = {
-apiKey:"AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
-authDomain:"sykolive-846a3.firebaseapp.com",
-projectId:"sykolive-846a3"
+apiKey:"YOUR_KEY",
+authDomain:"YOUR_DOMAIN",
+projectId:"YOUR_ID"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
 
-// ================= PARAMS =================
-const p = new URLSearchParams(location.search);
+/* URL DATA */
+let url = new URLSearchParams(location.search);
+let room = url.get("room");
+let role = url.get("role");
+let uid;
+let peer;
+let localStream;
 
-const roomId = p.get("room");
-const myId = p.get("id");
-const role = p.get("role");
-const to = p.get("to");
+const servers = {
+iceServers:[
+{ urls:"stun:stun.l.google.com:19302" }
+]
+};
 
-const roomRef = doc(db,"calls",roomId);
-
-const pc = new RTCPeerConnection({
-iceServers:[{urls:"stun:stun.l.google.com:19302"}]
+/* CAMERA */
+async function openCamera(){
+localStream = await navigator.mediaDevices.getUserMedia({
+video:true,
+audio:true
 });
 
-let stream;
-
-// ================= LISTEN =================
-onSnapshot(roomRef,(snap)=>{
-
-if(!snap.exists()) return;
-
-let data = snap.data();
-
-if(role==="receiver" && data.status==="calling"){
-document.getElementById("ringBox").style.display="block";
+document.getElementById("localVideo").srcObject = localStream;
 }
 
-if(data.status==="rejected" || data.status==="ended"){
-location.href="live.html";
+/* INIT */
+onAuthStateChanged(auth, async(user)=>{
+
+if(!user){
+alert("Login required");
+return;
 }
 
-if(role==="caller" && data.status==="accepted"){
-startCaller();
-}
+uid = user.uid;
+
+await openCamera();
+
+peer = new RTCPeerConnection(servers);
+
+/* add tracks */
+localStream.getTracks().forEach(t=>{
+peer.addTrack(t, localStream);
 });
 
-// ================= CALLER =================
-async function startCaller(){
+/* remote stream */
+peer.ontrack = (e)=>{
+document.getElementById("remoteVideo").srcObject = e.streams[0];
+};
 
-stream = await navigator.mediaDevices.getUserMedia({video:true,audio:true});
-document.getElementById("local").srcObject = stream;
-
-stream.getTracks().forEach(t=>pc.addTrack(t,stream));
-
-pc.onicecandidate = async(e)=>{
-if(e.candidate){
-await addDoc(collection(roomRef,"callerCandidates"),{
-candidate:e.candidate.toJSON()
+/* ICE candidates */
+peer.onicecandidate = async(event)=>{
+if(event.candidate){
+await updateDoc(doc(db,"calls",room),{
+candidate:event.candidate
 });
 }
 };
 
-let offer = await pc.createOffer();
-await pc.setLocalDescription(offer);
+/* LISTEN CALL DATA */
+onSnapshot(doc(db,"calls",room),(snap)=>{
+let data = snap.data();
+if(!data) return;
 
-await setDoc(roomRef,{
-offer:offer
+/* OFFER → receiver */
+if(data.offer && role==="receiver"){
+peer.setRemoteDescription(data.offer);
+showPopup(data.caller);
+}
+
+/* ANSWER → caller */
+if(data.answer && role==="caller"){
+peer.setRemoteDescription(data.answer);
+}
+
+/* ICE */
+if(data.candidate){
+peer.addIceCandidate(data.candidate);
+}
+});
+
+/* CALL FLOW */
+if(role==="caller"){
+startCall();
+}
+
+});
+
+/* START CALL (CALLER) */
+async function startCall(){
+
+let offer = await peer.createOffer();
+await peer.setLocalDescription(offer);
+
+await setDoc(doc(db,"calls",room),{
+offer:offer,
+status:"ringing"
 },{merge:true});
 
-pc.ontrack = (e)=>{
-document.getElementById("remote").srcObject = e.streams[0];
-};
 }
 
-// ================= RECEIVER =================
-async function startReceiver(){
+/* ACCEPT CALL (RECEIVER) */
+window.acceptCall = async ()=>{
 
-stream = await navigator.mediaDevices.getUserMedia({video:true,audio:true});
-document.getElementById("local").srcObject = stream;
+document.getElementById("popup").style.display="none";
 
-stream.getTracks().forEach(t=>pc.addTrack(t,stream));
+let answer = await peer.createAnswer();
+await peer.setLocalDescription(answer);
 
-let snap = await getDoc(roomRef);
-let data = snap.data();
-
-await pc.setRemoteDescription(data.offer);
-
-let answer = await pc.createAnswer();
-await pc.setLocalDescription(answer);
-
-await updateDoc(roomRef,{
+await updateDoc(doc(db,"calls",room),{
 answer:answer,
-status:"accepted"
+status:"connected"
+});
+};
+
+/* REJECT */
+window.rejectCall = async ()=>{
+
+document.getElementById("popup").style.display="none";
+
+await updateDoc(doc(db,"calls",room),{
+status:"rejected"
 });
 
-pc.ontrack = (e)=>{
-document.getElementById("remote").srcObject = e.streams[0];
 };
+
+/* POPUP */
+function showPopup(caller){
+document.getElementById("popup").style.display="flex";
+document.getElementById("callerText").innerText =
+"From: " + caller;
 }
-
-// ================= BUTTONS =================
-window.acceptCall = async()=>{
-document.getElementById("ringBox").style.display="none";
-await startReceiver();
-};
-
-window.rejectCall = async()=>{
-await updateDoc(roomRef,{status:"rejected"});
-location.href="live.html";
-};
 
 </script>
 
