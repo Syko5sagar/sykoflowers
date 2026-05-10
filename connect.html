@@ -7,42 +7,68 @@
 
 <style>
 
-body{
+*{
 margin:0;
-background:black;
-overflow:hidden;
+padding:0;
+box-sizing:border-box;
 font-family:Arial;
 }
 
-#remoteVideo{
+body{
+background:black;
+overflow:hidden;
 width:100vw;
 height:100vh;
+}
+
+/* REMOTE VIDEO */
+#remoteVideo{
+width:100%;
+height:100%;
 object-fit:cover;
 background:black;
 }
 
+/* LOCAL VIDEO */
 #localVideo{
 position:absolute;
 top:20px;
 right:20px;
 width:120px;
 height:170px;
-border-radius:15px;
+border-radius:20px;
 object-fit:cover;
 border:2px solid white;
+background:#111;
+z-index:10;
 }
 
-#end{
+/* END BUTTON */
+#endBtn{
 position:absolute;
 bottom:30px;
 left:50%;
 transform:translateX(-50%);
-background:red;
+padding:15px 30px;
 border:none;
-padding:15px 25px;
 border-radius:50px;
+background:red;
 color:white;
 font-size:18px;
+font-weight:bold;
+z-index:20;
+}
+
+/* STATUS */
+#status{
+position:absolute;
+top:20px;
+left:20px;
+background:rgba(0,0,0,0.5);
+padding:10px 15px;
+border-radius:15px;
+font-size:14px;
+z-index:20;
 }
 
 </style>
@@ -50,12 +76,16 @@ font-size:18px;
 
 <body>
 
+<div id="status">
+Connecting...
+</div>
+
 <video id="remoteVideo" autoplay playsinline></video>
 
 <video id="localVideo" autoplay muted playsinline></video>
 
-<button id="end">
-End Call
+<button id="endBtn">
+END
 </button>
 
 <script type="module">
@@ -63,105 +93,190 @@ End Call
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 
 import {
+
 getFirestore,
 doc,
-setDoc,
 getDoc,
-onSnapshot,
+setDoc,
 updateDoc,
+onSnapshot,
 collection,
 addDoc
+
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+
+// FIREBASE CONFIG
 const firebaseConfig = {
+
 apiKey:"YOUR_API_KEY",
 authDomain:"YOUR_AUTH_DOMAIN",
 projectId:"YOUR_PROJECT_ID",
 storageBucket:"YOUR_BUCKET",
 messagingSenderId:"YOUR_SENDER_ID",
 appId:"YOUR_APP_ID"
+
 };
 
 const app = initializeApp(firebaseConfig);
+
 const db = getFirestore(app);
 
+
+// URL PARAMS
 const params = new URLSearchParams(location.search);
 
 const roomId = params.get("room");
+
 const user = params.get("user");
 
+
+// HTML
+const localVideo = document.getElementById("localVideo");
+
+const remoteVideo = document.getElementById("remoteVideo");
+
+const statusDiv = document.getElementById("status");
+
+
+// ROOM REF
 const roomRef = doc(db,"calls",roomId);
 
+
+// RTC CONNECTION
 const pc = new RTCPeerConnection({
+
 iceServers:[
+
 {
 urls:"stun:stun.l.google.com:19302"
+},
+
+{
+urls:"stun:global.stun.twilio.com:3478"
 }
+
 ]
+
 });
 
-let localStream = await navigator.mediaDevices.getUserMedia({
+
+// LOCAL STREAM
+let localStream = null;
+
+let remoteStream = new MediaStream();
+
+remoteVideo.srcObject = remoteStream;
+
+
+// GET CAMERA + MIC
+try{
+
+localStream = await navigator.mediaDevices.getUserMedia({
+
 video:true,
 audio:true
+
 });
 
-document.getElementById("localVideo").srcObject = localStream;
+localVideo.srcObject = localStream;
 
 localStream.getTracks().forEach(track=>{
+
 pc.addTrack(track,localStream);
+
 });
 
-pc.ontrack=(event)=>{
-document.getElementById("remoteVideo").srcObject =
-event.streams[0];
+statusDiv.innerText = "Camera Connected";
+
+}catch(err){
+
+alert("Camera/Mic permission denied");
+
+console.log(err);
+
+}
+
+
+// REMOTE TRACK
+pc.ontrack = (event)=>{
+
+event.streams[0].getTracks().forEach(track=>{
+
+remoteStream.addTrack(track);
+
+});
+
+statusDiv.innerText = "Connected";
+
 };
 
-pc.onicecandidate=async(event)=>{
+
+// ICE CANDIDATE
+pc.onicecandidate = async(event)=>{
 
 if(event.candidate){
 
 await addDoc(
+
 collection(db,"calls",roomId,"candidates"),
+
 event.candidate.toJSON()
+
 );
 
 }
 
 };
 
+
+// CHECK ROOM
 const roomSnap = await getDoc(roomRef);
 
 const roomData = roomSnap.data();
 
-if(roomData.caller===user){
+
+// CALLER
+if(roomData.caller === user){
+
+statusDiv.innerText = "Calling...";
 
 const offer = await pc.createOffer();
 
 await pc.setLocalDescription(offer);
 
 await updateDoc(roomRef,{
+
 offer:{
 type:offer.type,
 sdp:offer.sdp
 }
+
 });
 
+
+// LISTEN ANSWER
 onSnapshot(roomRef,async(snapshot)=>{
 
 const data = snapshot.data();
 
 if(data.answer && !pc.currentRemoteDescription){
 
-const answer =
-new RTCSessionDescription(data.answer);
+const answer = new RTCSessionDescription(data.answer);
 
 await pc.setRemoteDescription(answer);
+
+statusDiv.innerText = "Connected";
 
 }
 
 });
 
 }else{
+
+// RECEIVER
+
+statusDiv.innerText = "Joining...";
 
 onSnapshot(roomRef,async(snapshot)=>{
 
@@ -170,7 +285,9 @@ const data = snapshot.data();
 if(data.offer && !pc.currentRemoteDescription){
 
 await pc.setRemoteDescription(
+
 new RTCSessionDescription(data.offer)
+
 );
 
 const answer = await pc.createAnswer();
@@ -178,11 +295,15 @@ const answer = await pc.createAnswer();
 await pc.setLocalDescription(answer);
 
 await updateDoc(roomRef,{
+
 answer:{
 type:answer.type,
 sdp:answer.sdp
 }
+
 });
+
+statusDiv.innerText = "Connected";
 
 }
 
@@ -190,21 +311,33 @@ sdp:answer.sdp
 
 }
 
+
+// ICE LISTENER
 onSnapshot(
+
 collection(db,"calls",roomId,"candidates"),
+
 (snapshot)=>{
 
 snapshot.docChanges().forEach(async(change)=>{
 
-if(change.type==="added"){
+if(change.type === "added"){
 
 let data = change.doc.data();
 
 try{
+
 await pc.addIceCandidate(
+
 new RTCIceCandidate(data)
+
 );
-}catch(e){}
+
+}catch(err){
+
+console.log(err);
+
+}
 
 }
 
@@ -212,13 +345,51 @@ new RTCIceCandidate(data)
 
 });
 
-document.getElementById("end").onclick=()=>{
+
+// CONNECTION STATE
+pc.onconnectionstatechange = ()=>{
+
+statusDiv.innerText = pc.connectionState;
+
+};
+
+
+// END BUTTON
+document.getElementById("endBtn").onclick = ()=>{
+
+if(localStream){
+
+localStream.getTracks().forEach(track=>{
+
+track.stop();
+
+});
+
+}
 
 pc.close();
 
-location.href="live.html";
+window.location.href = "live.html";
 
 };
+
+
+// AUTO END
+window.addEventListener("beforeunload",()=>{
+
+if(localStream){
+
+localStream.getTracks().forEach(track=>{
+
+track.stop();
+
+});
+
+}
+
+pc.close();
+
+});
 
 </script>
 
