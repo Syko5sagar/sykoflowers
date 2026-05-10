@@ -43,8 +43,8 @@ font-size:28px;
 }
 
 .photo{
-width:110px;
-height:110px;
+width:120px;
+height:120px;
 border-radius:50%;
 background:#222;
 margin:0 auto 20px;
@@ -117,10 +117,6 @@ transform:scale(1.03);
 <input type="file" id="fileInput" hidden accept="image/*">
 
 <input type="text" id="name" placeholder="Enter Name">
-
-<input type="number" id="age" placeholder="Enter Age">
-
-<input type="number" id="rate" placeholder="Enter Rate">
 
 <button id="nextBtn">
 
@@ -201,6 +197,8 @@ const icon = document.getElementById("icon");
 
 const nextBtn = document.getElementById("nextBtn");
 
+const nameInput = document.getElementById("name");
+
 
 // PHOTO CLICK
 photoBox.onclick = ()=>{
@@ -216,6 +214,10 @@ onAuthStateChanged(auth,(user)=>{
 if(user){
 
 userId = user.uid;
+
+
+// AUTO FILL GMAIL NAME
+nameInput.value = user.displayName || "";
 
 }else{
 
@@ -257,15 +259,11 @@ reader.readAsDataURL(file);
 // SAVE PROFILE
 nextBtn.onclick = async()=>{
 
-const name = document.getElementById("name").value.trim();
-
-const age = document.getElementById("age").value.trim();
-
-const rate = document.getElementById("rate").value.trim();
+const name = nameInput.value.trim();
 
 
 // VALIDATION
-if(!name || !age || !rate || !imageData){
+if(!name || !imageData){
 
 alert("Fill all fields");
 
@@ -294,10 +292,6 @@ uid:userId,
 
 name:name,
 
-age:age,
-
-rate:rate,
-
 profilePic:imageData,
 
 isOnline:true,
@@ -307,17 +301,13 @@ createdAt:Date.now()
 });
 
 
-// LOCAL STORAGE SAVE
+// LOCAL STORAGE
 localStorage.setItem("profile_name",name);
-
-localStorage.setItem("profile_age",age);
-
-localStorage.setItem("profile_rate",rate);
 
 localStorage.setItem("profile_pic",imageData);
 
 
-alert("Profile Saved Successfully");
+alert("Profile Saved");
 
 
 // GO LIVE PAGE
@@ -325,7 +315,7 @@ setTimeout(()=>{
 
 window.location.href = "live.html";
 
-},700);
+},500);
 
 
 }catch(err){
