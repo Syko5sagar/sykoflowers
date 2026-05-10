@@ -31,17 +31,11 @@ animation:bg 12s ease infinite;
 
 @keyframes bg{
 
-0%{
-background-position:0% 50%;
-}
+0%{background-position:0% 50%}
 
-50%{
-background-position:100% 50%;
-}
+50%{background-position:100% 50%}
 
-100%{
-background-position:0% 50%;
-}
+100%{background-position:0% 50%}
 
 }
 
@@ -73,21 +67,10 @@ transform:translateY(40px);
 animation:fadeUp 1s forwards;
 }
 
-.syko-letter:nth-child(1){
-animation-delay:.4s;
-}
-
-.syko-letter:nth-child(2){
-animation-delay:.8s;
-}
-
-.syko-letter:nth-child(3){
-animation-delay:1.2s;
-}
-
-.syko-letter:nth-child(4){
-animation-delay:1.6s;
-}
+.syko-letter:nth-child(1){animation-delay:.4s}
+.syko-letter:nth-child(2){animation-delay:.8s}
+.syko-letter:nth-child(3){animation-delay:1.2s}
+.syko-letter:nth-child(4){animation-delay:1.6s}
 
 .live-text{
 margin-top:10px;
@@ -339,7 +322,8 @@ from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
 
 getAuth,
-signInAnonymously
+GoogleAuthProvider,
+signInWithPopup
 
 }
 
@@ -370,6 +354,8 @@ appId:"1:705797986997:web:70c8263e3f712758bdbcfc"
 const app = initializeApp(firebaseConfig);
 
 const auth = getAuth(app);
+
+const provider = new GoogleAuthProvider();
 
 
 // SPLASH
@@ -403,8 +389,16 @@ btn.innerHTML="Loading...";
 
 try{
 
-await signInAnonymously(auth);
+const result = await signInWithPopup(auth,provider);
 
+
+// SAVE USER DATA
+localStorage.setItem("gmail_name",result.user.displayName || "");
+
+localStorage.setItem("gmail_email",result.user.email || "");
+
+
+// GO PROFILE PAGE
 window.location.href="profile.html";
 
 }catch(e){
