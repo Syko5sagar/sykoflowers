@@ -6,140 +6,188 @@
 <title>Rent bf/gf - Welcome</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;800&family=Playfair+Display:ital,wght@1,900&display=swap" rel="stylesheet">
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif}
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:'Poppins',sans-serif;
+}
 
 body{
-    height:100vh;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    overflow:hidden;
-    background:linear-gradient(-45deg,#000,#111,#1a001f,#000);
-    background-size:400% 400%;
-    animation:bg 10s ease infinite;
+height:100vh;
+display:flex;
+justify-content:center;
+align-items:center;
+overflow:hidden;
+background:linear-gradient(-45deg,#000,#111,#1a001f,#000);
+background-size:400% 400%;
+animation:bg 10s ease infinite;
 }
 
 @keyframes bg{
-    0%{background-position:0% 50%}
-    50%{background-position:100% 50%}
-    100%{background-position:0% 50%}
+
+0%{
+background-position:0% 50%;
 }
+
+50%{
+background-position:100% 50%;
+}
+
+100%{
+background-position:0% 50%;
+}
+
+}
+
 
 /* SPLASH */
 #splash-screen{
-    position:fixed;
-    width:100%;
-    height:100%;
-    background:#000;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    z-index:1000;
+position:fixed;
+width:100%;
+height:100%;
+background:#000;
+display:flex;
+justify-content:center;
+align-items:center;
+z-index:1000;
 }
 
 .syko-letter{
-    font-size:60px;
-    font-weight:800;
-    opacity:0;
-    color:white;
-    animation:fadeUp 0.6s forwards;
+font-size:60px;
+font-weight:800;
+opacity:0;
+color:white;
+animation:fadeUp .6s forwards;
 }
 
-.syko-letter:nth-child(1){animation-delay:.2s}
-.syko-letter:nth-child(2){animation-delay:.4s}
-.syko-letter:nth-child(3){animation-delay:.6s}
-.syko-letter:nth-child(4){animation-delay:.8s}
+.syko-letter:nth-child(1){
+animation-delay:.2s;
+}
+
+.syko-letter:nth-child(2){
+animation-delay:.4s;
+}
+
+.syko-letter:nth-child(3){
+animation-delay:.6s;
+}
+
+.syko-letter:nth-child(4){
+animation-delay:.8s;
+}
 
 @keyframes fadeUp{
-    to{opacity:1;transform:translateY(-10px)}
+
+to{
+opacity:1;
+transform:translateY(-10px);
 }
+
+}
+
 
 /* MAIN */
 #main-content{
-    display:none;
-    opacity:0;
-    transition:1s;
+display:none;
+opacity:0;
+transition:1s;
 }
 
 #main-content.active{
-    display:flex;
-    opacity:1;
+display:flex;
+opacity:1;
 }
+
 
 /* CARD */
 .container{
-    backdrop-filter:blur(20px);
-    background:rgba(255,255,255,0.05);
-    border:1px solid rgba(255,255,255,0.1);
-    padding:50px 40px;
-    border-radius:30px;
-    text-align:center;
-    width:350px;
-    box-shadow:0 0 40px rgba(255,0,150,0.1);
+backdrop-filter:blur(20px);
+background:rgba(255,255,255,0.05);
+border:1px solid rgba(255,255,255,0.1);
+padding:50px 40px;
+border-radius:30px;
+text-align:center;
+width:350px;
+box-shadow:0 0 40px rgba(255,0,150,0.1);
 }
+
 
 /* ICON */
 .header-icon{
-    font-size:70px;
-    margin-bottom:20px;
-    background:linear-gradient(45deg,#ff007f,#7000ff);
-    -webkit-background-clip:text;
-    -webkit-text-fill-color:transparent;
+font-size:70px;
+margin-bottom:20px;
+background:linear-gradient(45deg,#ff007f,#7000ff);
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
 }
+
 
 /* LOGO */
 .special-r{
-    font-family:'Playfair Display',serif;
-    font-size:60px;
-    background:linear-gradient(45deg,#ff007f,#7000ff);
-    -webkit-background-clip:text;
-    -webkit-text-fill-color:transparent;
+font-family:'Playfair Display',serif;
+font-size:60px;
+background:linear-gradient(45deg,#ff007f,#7000ff);
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
 }
 
 .logo-text{
-    font-size:24px;
-    color:#aaa;
+font-size:24px;
+color:#aaa;
 }
+
 
 /* BUTTON */
 .btn-google{
-    width:100%;
-    padding:15px;
-    border:none;
-    border-radius:15px;
-    background:white;
-    color:black;
-    font-weight:600;
-    margin-top:30px;
-    cursor:pointer;
-    transition:.3s;
-    display:flex;
-    justify-content:center;
-    align-items:center;
+width:100%;
+padding:15px;
+border:none;
+border-radius:15px;
+background:white;
+color:black;
+font-weight:600;
+margin-top:30px;
+cursor:pointer;
+transition:.3s;
+display:flex;
+justify-content:center;
+align-items:center;
 }
 
 .btn-google:hover{
-    transform:scale(1.05);
-    box-shadow:0 0 20px rgba(255,255,255,0.4);
+transform:scale(1.05);
+box-shadow:0 0 20px rgba(255,255,255,0.4);
 }
+
 
 /* PARTICLES */
 .particle{
-    position:absolute;
-    width:5px;
-    height:5px;
-    background:#ff007f;
-    border-radius:50%;
-    animation:float 10s linear infinite;
+position:absolute;
+width:5px;
+height:5px;
+background:#ff007f;
+border-radius:50%;
+animation:float 10s linear infinite;
 }
 
 @keyframes float{
-    from{transform:translateY(100vh)}
-    to{transform:translateY(-10vh)}
+
+from{
+transform:translateY(100vh);
 }
+
+to{
+transform:translateY(-10vh);
+}
+
+}
+
 </style>
 </head>
 
@@ -147,84 +195,190 @@ body{
 
 <!-- PARTICLES -->
 <script>
+
 for(let i=0;i<25;i++){
-    let p=document.createElement("div");
-    p.className="particle";
-    p.style.left=Math.random()*100+"%";
-    p.style.animationDuration=(5+Math.random()*5)+"s";
-    document.body.appendChild(p);
+
+let p=document.createElement("div");
+
+p.className="particle";
+
+p.style.left=Math.random()*100+"%";
+
+p.style.animationDuration=(5+Math.random()*5)+"s";
+
+document.body.appendChild(p);
+
 }
+
 </script>
+
 
 <!-- SPLASH -->
 <div id="splash-screen">
-    <div>
-        <span class="syko-letter">S</span>
-        <span class="syko-letter">Y</span>
-        <span class="syko-letter">K</span>
-        <span class="syko-letter">O</span>
-    </div>
+
+<div>
+
+<span class="syko-letter">S</span>
+<span class="syko-letter">Y</span>
+<span class="syko-letter">K</span>
+<span class="syko-letter">O</span>
+
 </div>
+
+</div>
+
 
 <!-- MAIN -->
 <div id="main-content">
-    <div class="container">
 
-        <i class="fa-solid fa-heart-pulse header-icon"></i>
+<div class="container">
 
-        <div>
-            <span class="special-r">R</span>
-            <span class="logo-text">ent bf/gf</span>
-        </div>
+<i class="fa-solid fa-heart-pulse header-icon"></i>
 
-        <p style="color:#888;font-size:13px;margin-top:10px">
-            ಮುಂದುವರಿಯಲು ಲಾಗಿನ್ ಆಗಿ
-        </p>
+<div>
 
-        <button class="btn-google" id="googleBtn">
-            <img src="https://fonts.gstatic.com/s/i/productlogos/googleg/v6/24px.svg" width="20" style="margin-right:10px;">
-            Google ಮೂಲಕ ಲಾಗಿನ್
-        </button>
+<span class="special-r">R</span>
 
-    </div>
+<span class="logo-text">ent bf/gf</span>
+
 </div>
+
+<p style="color:#888;font-size:13px;margin-top:10px">
+
+ಮುಂದುವರಿಯಲು ಲಾಗಿನ್ ಆಗಿ
+
+</p>
+
+<button class="btn-google" id="googleBtn">
+
+<img src="https://fonts.gstatic.com/s/i/productlogos/googleg/v6/24px.svg"
+
+width="20"
+
+style="margin-right:10px;">
+
+Google ಮೂಲಕ ಲಾಗಿನ್
+
+</button>
+
+</div>
+
+</div>
+
 
 <!-- FIREBASE -->
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
+import { initializeApp }
+
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+
+getAuth,
+GoogleAuthProvider,
+signInWithRedirect,
+getRedirectResult
+
+}
+
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+
+// FIREBASE CONFIG
 const firebaseConfig = {
- apiKey:"AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
- authDomain:"sykolive-846a3.firebaseapp.com",
- projectId:"sykolive-846a3"
+
+apiKey:"AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
+
+authDomain:"sykolive-846a3.firebaseapp.com",
+
+databaseURL:"https://sykolive-846a3-default-rtdb.firebaseio.com",
+
+projectId:"sykolive-846a3",
+
+storageBucket:"sykolive-846a3.firebasestorage.app",
+
+messagingSenderId:"705797986997",
+
+appId:"1:705797986997:web:70c8263e3f712758bdbcfc"
+
 };
 
+
+// INIT
 const app = initializeApp(firebaseConfig);
+
 const auth = getAuth(app);
+
 const provider = new GoogleAuthProvider();
 
-// splash
+
+// SPLASH
 window.onload=()=>{
- setTimeout(()=>{
-  document.getElementById("splash-screen").style.display="none";
-  let m=document.getElementById("main-content");
-  m.style.display="flex";
-  setTimeout(()=>m.classList.add("active"),100);
- },2500);
+
+setTimeout(()=>{
+
+document.getElementById("splash-screen").style.display="none";
+
+let m=document.getElementById("main-content");
+
+m.style.display="flex";
+
+setTimeout(()=>{
+
+m.classList.add("active");
+
+},100);
+
+},2500);
+
 };
 
-// login
-document.getElementById("googleBtn").onclick=async()=>{
- document.getElementById("googleBtn").innerText="Loading...";
- try{
-  await signInWithPopup(auth,provider);
-  location.href="profile.html";
- }catch(e){
-  alert(e.message);
- }
+
+// LOGIN BUTTON
+document.getElementById("googleBtn").onclick = async()=>{
+
+const btn=document.getElementById("googleBtn");
+
+btn.innerHTML="Loading...";
+
+try{
+
+await signInWithRedirect(auth,provider);
+
+}catch(e){
+
+alert(e.message);
+
+console.log(e);
+
+btn.innerHTML="Google ಮೂಲಕ ಲಾಗಿನ್";
+
+}
+
 };
+
+
+// REDIRECT RESULT
+getRedirectResult(auth)
+
+.then((result)=>{
+
+if(result && result.user){
+
+window.location.href="profile.html";
+
+}
+
+})
+
+.catch((err)=>{
+
+console.log(err);
+
+});
+
 </script>
 
 </body>
-</html>
+    </html>
