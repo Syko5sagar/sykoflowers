@@ -6,6 +6,7 @@
 <title>Rent bf/gf - Welcome</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;800&family=Playfair+Display:ital,wght@1,900&display=swap" rel="stylesheet">
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
 <style>
@@ -25,15 +26,27 @@ align-items:center;
 overflow:hidden;
 background:linear-gradient(-45deg,#000,#111,#1a001f,#000);
 background-size:400% 400%;
-animation:bg 10s ease infinite;
+animation:bg 12s ease infinite;
 }
 
 @keyframes bg{
-0%{background-position:0% 50%}
-50%{background-position:100% 50%}
-100%{background-position:0% 50%}
+
+0%{
+background-position:0% 50%;
 }
 
+50%{
+background-position:100% 50%;
+}
+
+100%{
+background-position:0% 50%;
+}
+
+}
+
+
+/* SPLASH */
 #splash-screen{
 position:fixed;
 width:100%;
@@ -43,32 +56,73 @@ display:flex;
 justify-content:center;
 align-items:center;
 z-index:1000;
+flex-direction:column;
+}
+
+.syko-wrap{
+display:flex;
+gap:5px;
 }
 
 .syko-letter{
-font-size:60px;
+font-size:65px;
 font-weight:800;
 opacity:0;
 color:white;
-animation:fadeUp .6s forwards;
+transform:translateY(40px);
+animation:fadeUp 1s forwards;
 }
 
-.syko-letter:nth-child(1){animation-delay:.2s}
-.syko-letter:nth-child(2){animation-delay:.4s}
-.syko-letter:nth-child(3){animation-delay:.6s}
-.syko-letter:nth-child(4){animation-delay:.8s}
+.syko-letter:nth-child(1){
+animation-delay:.4s;
+}
+
+.syko-letter:nth-child(2){
+animation-delay:.8s;
+}
+
+.syko-letter:nth-child(3){
+animation-delay:1.2s;
+}
+
+.syko-letter:nth-child(4){
+animation-delay:1.6s;
+}
+
+.live-text{
+margin-top:10px;
+font-size:20px;
+letter-spacing:8px;
+color:#ff007f;
+opacity:0;
+animation:fadeLive 1.5s forwards;
+animation-delay:2.2s;
+}
 
 @keyframes fadeUp{
+
 to{
 opacity:1;
-transform:translateY(-10px);
-}
+transform:translateY(0px);
 }
 
+}
+
+@keyframes fadeLive{
+
+to{
+opacity:1;
+letter-spacing:3px;
+}
+
+}
+
+
+/* MAIN */
 #main-content{
 display:none;
 opacity:0;
-transition:1s;
+transition:1.5s;
 }
 
 #main-content.active{
@@ -76,6 +130,8 @@ display:flex;
 opacity:1;
 }
 
+
+/* CARD */
 .container{
 backdrop-filter:blur(20px);
 background:rgba(255,255,255,0.05);
@@ -85,8 +141,25 @@ border-radius:30px;
 text-align:center;
 width:350px;
 box-shadow:0 0 40px rgba(255,0,150,0.1);
+animation:zoomIn 1s ease;
 }
 
+@keyframes zoomIn{
+
+from{
+transform:scale(.7);
+opacity:0;
+}
+
+to{
+transform:scale(1);
+opacity:1;
+}
+
+}
+
+
+/* ICON */
 .header-icon{
 font-size:70px;
 margin-bottom:20px;
@@ -95,6 +168,8 @@ background:linear-gradient(45deg,#ff007f,#7000ff);
 -webkit-text-fill-color:transparent;
 }
 
+
+/* LOGO */
 .special-r{
 font-family:'Playfair Display',serif;
 font-size:60px;
@@ -108,6 +183,16 @@ font-size:24px;
 color:#aaa;
 }
 
+
+/* SUB */
+.sub{
+color:#888;
+font-size:13px;
+margin-top:10px;
+}
+
+
+/* BUTTON */
 .btn-google{
 width:100%;
 padding:15px;
@@ -122,8 +207,16 @@ transition:.3s;
 display:flex;
 justify-content:center;
 align-items:center;
+font-size:15px;
 }
 
+.btn-google:hover{
+transform:scale(1.05);
+box-shadow:0 0 20px rgba(255,255,255,0.4);
+}
+
+
+/* PARTICLES */
 .particle{
 position:absolute;
 width:5px;
@@ -131,11 +224,19 @@ height:5px;
 background:#ff007f;
 border-radius:50%;
 animation:float 10s linear infinite;
+opacity:.7;
 }
 
 @keyframes float{
-from{transform:translateY(100vh)}
-to{transform:translateY(-10vh)}
+
+from{
+transform:translateY(100vh);
+}
+
+to{
+transform:translateY(-10vh);
+}
+
 }
 
 </style>
@@ -143,9 +244,10 @@ to{transform:translateY(-10vh)}
 
 <body>
 
+<!-- PARTICLES -->
 <script>
 
-for(let i=0;i<25;i++){
+for(let i=0;i<30;i++){
 
 let p=document.createElement("div");
 
@@ -153,7 +255,9 @@ p.className="particle";
 
 p.style.left=Math.random()*100+"%";
 
-p.style.animationDuration=(5+Math.random()*5)+"s";
+p.style.animationDuration=(5+Math.random()*7)+"s";
+
+p.style.opacity=Math.random();
 
 document.body.appendChild(p);
 
@@ -161,9 +265,11 @@ document.body.appendChild(p);
 
 </script>
 
+
+<!-- SPLASH -->
 <div id="splash-screen">
 
-<div>
+<div class="syko-wrap">
 
 <span class="syko-letter">S</span>
 <span class="syko-letter">Y</span>
@@ -172,8 +278,16 @@ document.body.appendChild(p);
 
 </div>
 
+<div class="live-text">
+
+LIVE
+
 </div>
 
+</div>
+
+
+<!-- MAIN -->
 <div id="main-content">
 
 <div class="container">
@@ -184,11 +298,15 @@ document.body.appendChild(p);
 
 <span class="special-r">R</span>
 
-<span class="logo-text">ent bf/gf</span>
+<span class="logo-text">
+
+ent bf/gf
+
+</span>
 
 </div>
 
-<p style="color:#888;font-size:13px;margin-top:10px">
+<p class="sub">
 
 ಮುಂದುವರಿಯಲು ಲಾಗಿನ್ ಆಗಿ
 
@@ -202,7 +320,7 @@ width="20"
 
 style="margin-right:10px;">
 
-Continue
+Google ಮೂಲಕ ಲಾಗಿನ್
 
 </button>
 
@@ -210,6 +328,8 @@ Continue
 
 </div>
 
+
+<!-- FIREBASE -->
 <script type="module">
 
 import { initializeApp }
@@ -225,6 +345,8 @@ signInAnonymously
 
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
+
+// FIREBASE CONFIG
 const firebaseConfig = {
 
 apiKey:"AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
@@ -243,6 +365,8 @@ appId:"1:705797986997:web:70c8263e3f712758bdbcfc"
 
 };
 
+
+// INIT
 const app = initializeApp(firebaseConfig);
 
 const auth = getAuth(app);
@@ -265,7 +389,7 @@ m.classList.add("active");
 
 },100);
 
-},2500);
+},4500);
 
 };
 
@@ -289,7 +413,12 @@ console.log(e);
 
 alert(e.message);
 
-btn.innerHTML="Continue";
+btn.innerHTML=`
+<img src="https://fonts.gstatic.com/s/i/productlogos/googleg/v6/24px.svg"
+width="20"
+style="margin-right:10px;">
+Google ಮೂಲಕ ಲಾಗಿನ್
+`;
 
 }
 
