@@ -3,227 +3,244 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Live</title>
+<title>Live Users</title>
 
 <style>
-body{background:#000;color:#fff;font-family:Poppins;margin:0}
+body{
+margin:0;
+font-family:Arial;
+background:#0f0f0f;
+color:#fff;
+}
 
 .header{
-background:linear-gradient(45deg,#ff0066,#ff6600);
 padding:15px;
-text-align:center;
+font-size:22px;
 font-weight:bold;
+text-align:center;
+background:#ff0050;
 }
 
-.top{
-display:flex;
-align-items:center;
+#users{
 padding:10px;
-background:#111;
-}
-
-.top img{
-width:45px;
-height:45px;
-border-radius:50%;
-margin-right:10px;
-object-fit:cover;
-border:2px solid #fff;
 }
 
 .user{
-background:#111;
-margin:10px;
-padding:10px;
-border-radius:10px;
+background:#1c1c1c;
+padding:12px;
+border-radius:15px;
+margin-bottom:10px;
 display:flex;
-align-items:center;
 justify-content:space-between;
-}
-
-.user-left{
-display:flex;
 align-items:center;
-gap:10px;
 }
 
-.user img{
-width:40px;
-height:40px;
-border-radius:50%;
-object-fit:cover;
+.online{
+color:#00ff99;
+font-size:14px;
 }
 
-.btn{
-padding:5px 8px;
-margin:3px;
+.offline{
+color:#999;
+font-size:14px;
+}
+
+button{
+background:#ff0050;
 border:none;
-border-radius:5px;
-color:#fff;
-cursor:pointer;
+padding:10px 15px;
+border-radius:10px;
+color:white;
+font-weight:bold;
 }
 
-.chat{background:green}
-.call{background:blue}
-.book{background:#ff0066;margin-top:5px;width:100%}
+#incoming{
+position:fixed;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+background:#1c1c1c;
+padding:20px;
+border-radius:20px;
+display:none;
+width:300px;
+text-align:center;
+z-index:999;
+box-shadow:0 0 20px #000;
+}
+
+#incoming h2{
+margin-top:0;
+}
+
+.accept{
+background:#00c853;
+margin-right:10px;
+}
+
+.reject{
+background:red;
+}
 </style>
 </head>
 
 <body>
 
-<div class="header">🔥 LIVE USERS 🔥</div>
-
-<div class="top">
-<img id="myDp">
-<div id="myName">Loading...</div>
+<div class="header">
+LIVE USERS
 </div>
 
-<div id="count"></div>
-<div id="list"></div>
+<div id="users"></div>
+
+<div id="incoming">
+<h2>Incoming Call</h2>
+<p id="callerText"></p>
+
+<button class="accept" onclick="acceptCall()">
+Accept
+</button>
+
+<button class="reject" onclick="rejectCall()">
+Reject
+</button>
+</div>
 
 <script type="module">
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
 import {
 getFirestore,
-collection,
-onSnapshot,
 doc,
 setDoc,
-updateDoc
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+getDoc,
+collection,
+onSnapshot,
+updateDoc,
+serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-import {
-getAuth,
-onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-
-// 🔥 FIREBASE CONFIG
 const firebaseConfig = {
-apiKey:"AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
-authDomain:"sykolive-846a3.firebaseapp.com",
-projectId:"sykolive-846a3"
+apiKey:"YOUR_API_KEY",
+authDomain:"YOUR_AUTH_DOMAIN",
+projectId:"YOUR_PROJECT_ID",
+storageBucket:"YOUR_BUCKET",
+messagingSenderId:"YOUR_SENDER_ID",
+appId:"YOUR_APP_ID"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const auth = getAuth(app);
 
-let uid;
+let uid = localStorage.getItem("uid");
 
-// ================= LOGIN =================
-onAuthStateChanged(auth, async(user)=>{
-if(!user){
-location.href="index.html";
-return;
+if(!uid){
+uid = "user_" + Math.random().toString(36).substr(2,9);
+localStorage.setItem("uid",uid);
 }
 
-uid = user.uid;
-
-// 🔥 ONLINE STATUS
 await setDoc(doc(db,"users",uid),{
-isOnline:true,
-lastSeen:Date.now()
+uid:uid,
+online:true,
+lastSeen:serverTimestamp()
 },{merge:true});
 
-// heartbeat
-setInterval(()=>{
-updateDoc(doc(db,"users",uid),{
-lastSeen:Date.now(),
-isOnline:true
-}).catch(()=>{});
-},30000);
-
-// PROFILE
-onSnapshot(doc(db,"users",uid),(s)=>{
-let u = s.data();
-if(!u) return;
-
-document.getElementById("myName").innerText = u.name || "User";
-document.getElementById("myDp").src =
-u.profilePic || "https://via.placeholder.com/50";
+window.addEventListener("beforeunload",async()=>{
+await updateDoc(doc(db,"users",uid),{
+online:false
+});
 });
 
-// USERS LIST
+const usersDiv = document.getElementById("users");
+
 onSnapshot(collection(db,"users"),(snap)=>{
 
-let html="";
-let count=0;
+usersDiv.innerHTML="";
 
-snap.forEach(d=>{
-let u = d.data();
+snap.forEach((docSnap)=>{
 
-let online = u.lastSeen && (Date.now()-u.lastSeen < 120000);
+let data = docSnap.data();
 
-if(d.id !== uid && online){
-count++;
+if(data.uid === uid) return;
 
-html += `
-<div class="user">
+let div = document.createElement("div");
+div.className="user";
 
-<div class="user-left">
-<img src="${u.profilePic || 'https://via.placeholder.com/40'}">
+div.innerHTML=`
 <div>
-<b>${u.name || "User"}</b><br>
-₹${u.rate || 0}
+<div>${data.uid}</div>
+<div class="${data.online ? 'online':'offline'}">
+${data.online ? 'Online':'Offline'}
 </div>
 </div>
 
-<div>
-<button class="btn chat" onclick="chatUser('${d.id}')">Chat</button>
-<button class="btn call" onclick="callUser('${d.id}')">Call</button>
-<button class="btn book" onclick="bookUser('${d.id}','${u.name}','${u.rate}')">Book</button>
-</div>
+<button onclick="callUser('${data.uid}')">
+Video Call
+</button>
+`;
 
-</div>`;
-}
-});
+usersDiv.appendChild(div);
 
-document.getElementById("list").innerHTML = html;
-document.getElementById("count").innerText = count + " users online";
 });
 
 });
 
-// CHAT
-window.chatUser = (id)=>{
-location.href="chat.html?id="+id;
-};
-
-// ================= 🔥 FIXED CALL =================
-window.callUser = async (id)=>{
+window.callUser = async(id)=>{
 
 let room = [uid,id].sort().join("_");
 
-// create call room
 await setDoc(doc(db,"calls",room),{
 caller:uid,
 receiver:id,
 status:"calling",
-createdAt:Date.now()
-},{merge:true});
-
-// 👉 SAFE REDIRECT (FIXED)
-location.href =
-"connect.html?room=" + encodeURIComponent(room) +
-"&id=" + encodeURIComponent(uid) +
-"&role=caller" +
-"&to=" + encodeURIComponent(id);
-};
-
-// BOOKING
-window.bookUser = async(id,name,rate)=>{
-
-await setDoc(doc(db,"bookings","b_"+Date.now()),{
-bookerId:uid,
-targetId:id,
-targetName:name,
-amount:rate,
-status:"pending",
 time:Date.now()
 });
 
-alert("Booking Sent 🔥");
+location.href=`connect.html?room=${room}&user=${uid}`;
+
+};
+
+let currentRoom="";
+
+onSnapshot(collection(db,"calls"),(snap)=>{
+
+snap.forEach((d)=>{
+
+let call = d.data();
+
+if(call.receiver===uid && call.status==="calling"){
+
+currentRoom=d.id;
+
+document.getElementById("incoming").style.display="block";
+
+document.getElementById("callerText").innerText=
+call.caller + " is calling you";
+
+}
+
+});
+
+});
+
+window.acceptCall = async()=>{
+
+await updateDoc(doc(db,"calls",currentRoom),{
+status:"accepted"
+});
+
+location.href=`connect.html?room=${currentRoom}&user=${uid}`;
+
+};
+
+window.rejectCall = async()=>{
+
+await updateDoc(doc(db,"calls",currentRoom),{
+status:"rejected"
+});
+
+document.getElementById("incoming").style.display="none";
+
 };
 
 </script>
