@@ -278,7 +278,7 @@ import {
 getAuth,
 GoogleAuthProvider,
 signInWithRedirect,
-getRedirectResult
+onAuthStateChanged
 
 }
 
@@ -359,26 +359,18 @@ btn.innerHTML="Google ಮೂಲಕ ಲಾಗಿನ್";
 };
 
 
-// REDIRECT RESULT
-getRedirectResult(auth)
+// LOGIN CHECK
+onAuthStateChanged(auth,(user)=>{
 
-.then((result)=>{
-
-if(result && result.user){
+if(user){
 
 window.location.href="profile.html";
 
 }
-
-})
-
-.catch((err)=>{
-
-console.log(err);
 
 });
 
 </script>
 
 </body>
-    </html>
+</html>
