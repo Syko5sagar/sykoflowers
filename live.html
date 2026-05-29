@@ -1,215 +1,162 @@
 <!DOCTYPE html>
 <html lang="kn">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SYKO LIVE</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Rent bf/gf - Connect</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 
 <style>
 
 *{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:Arial;
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Poppins',sans-serif;
 }
 
 body{
-background:#0f0f0f;
-color:#fff;
+    background:#000;
+    color:#fff;
+    padding-top:90px;
 }
-
 
 /* HEADER */
+
 .header{
-padding:15px;
-background:#111;
-display:flex;
-justify-content:space-between;
-align-items:center;
-position:sticky;
-top:0;
-z-index:100;
-border-bottom:2px solid #ff0050;
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    background:#000;
+    padding:12px 16px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    border-bottom:2px solid #32cd32;
+    z-index:1000;
 }
 
-
-/* LOGO */
-.logo{
-font-size:24px;
-font-weight:bold;
-letter-spacing:2px;
+.app-name{
+    color:#32cd32;
+    font-size:24px;
+    font-weight:800;
+    font-style:italic;
 }
 
-.blink{
-background:linear-gradient(45deg,#ff0050,#00ffe1,#ff0050);
-background-size:300% 300%;
--webkit-background-clip:text;
--webkit-text-fill-color:transparent;
-animation:blinkGlow 2s linear infinite;
-font-weight:bold;
-text-shadow:0 0 10px rgba(255,0,80,0.7);
+.my-box{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:#111;
+    padding:4px 10px;
+    border-radius:30px;
+    border:1px solid #ff007f;
+    cursor:pointer;
 }
 
-@keyframes blinkGlow{
-
-0%{
-background-position:0% 50%;
-opacity:1;
-transform:scale(1);
+.my-box img{
+    width:32px;
+    height:32px;
+    border-radius:50%;
+    object-fit:cover;
 }
 
-25%{
-opacity:.6;
+.my-box span{
+    color:#ff007f;
+    font-size:12px;
+    font-weight:bold;
 }
 
-50%{
-background-position:100% 50%;
-opacity:1;
-transform:scale(1.05);
+/* FEED */
+
+.feed{
+    width:100%;
+    max-width:450px;
+    margin:auto;
+    padding:15px;
 }
 
-75%{
-opacity:.7;
+.card{
+    background:#0d0d0d;
+    border:1px solid #222;
+    border-radius:25px;
+    padding:15px;
+    margin-bottom:20px;
+    box-shadow:0 0 15px rgba(255,0,150,0.1);
 }
 
-100%{
-background-position:0% 50%;
-opacity:1;
-transform:scale(1);
+.card-top{
+    display:flex;
+    gap:14px;
+    align-items:center;
 }
 
+.user-pic{
+    width:80px;
+    height:80px;
+    border-radius:50%;
+    object-fit:cover;
+    border:2px solid #ff4d4d;
 }
 
-
-/* MY PROFILE */
-.myProfile{
-display:flex;
-align-items:center;
-gap:10px;
+.user-details{
+    flex:1;
 }
 
-.myProfile img{
-width:45px;
-height:45px;
-border-radius:50%;
-object-fit:cover;
-border:2px solid #fff;
+.user-details h3{
+    color:#4da6ff;
+    font-size:18px;
 }
 
-.myProfile div{
-font-size:14px;
-font-weight:bold;
+.rate{
+    color:#ff007f;
+    font-weight:bold;
+    font-size:15px;
 }
 
-
-/* USERS */
-#users{
-padding:10px;
+.comm-icons{
+    display:flex;
+    gap:10px;
 }
 
-.user{
-background:#1c1c1c;
-padding:12px;
-border-radius:15px;
-margin-bottom:12px;
-display:flex;
-justify-content:space-between;
-align-items:center;
-border:1px solid #2d2d2d;
-box-shadow:0 0 10px rgba(0,0,0,0.5);
+.btn-circle{
+    width:42px;
+    height:42px;
+    background:#fff;
+    color:#000;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    transition:0.3s;
 }
 
-
-/* LEFT */
-.left{
-display:flex;
-align-items:center;
-gap:12px;
+.btn-circle:hover{
+    transform:scale(1.08);
 }
 
-.left img{
-width:60px;
-height:60px;
-border-radius:50%;
-object-fit:cover;
-border:2px solid #ff0050;
+.main-btn{
+    width:100%;
+    margin-top:15px;
+    border:none;
+    outline:none;
+    background:linear-gradient(45deg,#ff007f,#ff00e5);
+    color:white;
+    padding:12px;
+    border-radius:15px;
+    font-weight:bold;
+    cursor:pointer;
+    font-size:15px;
 }
 
-.name{
-font-size:17px;
-font-weight:bold;
-margin-bottom:5px;
-}
-
-.online{
-color:#00ff99;
-font-size:13px;
-}
-
-.offline{
-color:#999;
-font-size:13px;
-}
-
-
-/* RIGHT BUTTONS */
-.actions{
-display:flex;
-flex-direction:column;
-gap:8px;
-}
-
-.chatBtn{
-background:#2979ff;
-}
-
-.callBtn{
-background:#ff0050;
-}
-
-button{
-border:none;
-padding:10px 15px;
-border-radius:10px;
-color:white;
-font-weight:bold;
-cursor:pointer;
-}
-
-
-/* INCOMING */
-#incoming{
-position:fixed;
-top:50%;
-left:50%;
-transform:translate(-50%,-50%);
-background:#1c1c1c;
-padding:20px;
-border-radius:20px;
-display:none;
-width:300px;
-text-align:center;
-z-index:999;
-box-shadow:0 0 20px #000;
-}
-
-#incoming img{
-width:90px;
-height:90px;
-border-radius:50%;
-object-fit:cover;
-margin-bottom:10px;
-border:3px solid #ff0050;
-}
-
-.accept{
-background:#00c853;
-margin-right:10px;
-}
-
-.reject{
-background:red;
+.empty{
+    text-align:center;
+    color:#777;
+    margin-top:40px;
 }
 
 </style>
@@ -218,379 +165,224 @@ background:red;
 <body>
 
 <!-- HEADER -->
+
 <div class="header">
 
-<div class="logo">
+    <div class="app-name">
+        Rent bf/gf
+    </div>
 
-<span class="blink">
-
-SYKO LIVE
-
-</span>
-
-</div>
-
-<div class="myProfile">
-
-<img id="myPic">
-
-<div id="myName">
-
-User
+    <div class="my-box" onclick="goProfile()">
+        <img id="headPic" src="https://via.placeholder.com/100">
+        <span id="headName">User</span>
+    </div>
 
 </div>
-
-</div>
-
-</div>
-
 
 <!-- USERS -->
-<div id="users"></div>
 
+<div class="feed" id="live-users">
 
-<!-- INCOMING CALL -->
-<div id="incoming">
-
-<img id="callerPic">
-
-<h2>Incoming Call</h2>
-
-<p id="callerText"></p>
-
-<br>
-
-<button class="accept" onclick="acceptCall()">
-
-Accept
-
-</button>
-
-<button class="reject" onclick="rejectCall()">
-
-Reject
-
-</button>
+    <p class="empty">Loading users...</p>
 
 </div>
 
+<!-- FIREBASE -->
 
 <script type="module">
 
-import { initializeApp }
-
-from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 
 import {
-
-getFirestore,
-doc,
-setDoc,
-collection,
-onSnapshot,
-updateDoc,
-serverTimestamp,
-getDocs
-
+    getFirestore,
+    collection,
+    onSnapshot,
+    doc,
+    getDoc
 }
-
-from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 import {
-
-getAuth,
-onAuthStateChanged
-
+    getAuth,
+    onAuthStateChanged
 }
+from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+/* FIREBASE CONFIG */
 
-
-// FIREBASE CONFIG
 const firebaseConfig = {
 
-apiKey:"AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
+    apiKey: "YOUR_API_KEY",
 
-authDomain:"sykolive-846a3.firebaseapp.com",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
 
-databaseURL:"https://sykolive-846a3-default-rtdb.firebaseio.com",
+    projectId: "YOUR_PROJECT_ID",
 
-projectId:"sykolive-846a3",
+    storageBucket: "YOUR_PROJECT.appspot.com",
 
-storageBucket:"sykolive-846a3.firebasestorage.app",
+    messagingSenderId: "YOUR_SENDER_ID",
 
-messagingSenderId:"705797986997",
-
-appId:"1:705797986997:web:70c8263e3f712758bdbcfc"
+    appId: "YOUR_APP_ID"
 
 };
 
+/* INIT */
 
-// INIT
 const app = initializeApp(firebaseConfig);
 
 const db = getFirestore(app);
 
 const auth = getAuth(app);
 
+/* GLOBAL USER */
 
-let uid = "";
+let currentUID = null;
 
+/* PROFILE */
 
-// LOGIN CHECK
-onAuthStateChanged(auth,async(user)=>{
+onAuthStateChanged(auth, async(user)=>{
 
-if(user){
+    if(!user){
 
-uid = user.uid;
+        alert("Login first");
 
+        window.location.href = "login.html";
 
-// GET PROFILE
-const myName =
-localStorage.getItem("profile_name") || "User";
+        return;
+    }
 
-const myPic =
-localStorage.getItem("profile_pic") || "";
+    currentUID = user.uid;
 
+    try{
 
-// TOP PROFILE
-document.getElementById("myName").innerText = myName;
+        const snap = await getDoc(doc(db,"users",user.uid));
 
-document.getElementById("myPic").src = myPic;
+        if(snap.exists()){
 
+            const data = snap.data();
 
-// SAVE USER
-await setDoc(doc(db,"users",uid),{
+            document.getElementById("headPic").src =
+            data.profilePic || "https://via.placeholder.com/100";
 
-uid:uid,
+            document.getElementById("headName").innerText =
+            data.name || "User";
+        }
 
-name:myName,
+    }catch(err){
 
-profilePic:myPic,
+        console.log(err);
 
-online:true,
-
-lastSeen:Date.now()
-
-},{merge:true});
-
-
-// LOAD USERS
-loadUsers();
-
-
-// CALL LISTENER
-listenCalls();
-
-}else{
-
-location.href="index.html";
-
-}
+    }
 
 });
 
+/* LIVE USERS */
 
-// OFFLINE
-window.addEventListener("beforeunload",()=>{
+const usersRef = collection(db,"users");
 
-if(uid){
+onSnapshot(usersRef,(snapshot)=>{
 
-updateDoc(doc(db,"users",uid),{
+    const container = document.getElementById("live-users");
 
-online:false
+    container.innerHTML = "";
 
-});
+    if(snapshot.empty){
 
-}
+        container.innerHTML =
+        `<p class="empty">No users found</p>`;
 
-});
+        return;
+    }
 
+    snapshot.forEach((docSnap)=>{
 
-// LOAD USERS
-function loadUsers(){
+        const u = docSnap.data();
 
-const usersDiv = document.getElementById("users");
+        /* OWN PROFILE HIDE */
 
-onSnapshot(collection(db,"users"),(snapshot)=>{
+        if(u.uid === currentUID) return;
 
-usersDiv.innerHTML="";
+        container.innerHTML += `
 
-snapshot.forEach((docSnap)=>{
+        <div class="card">
 
-const data = docSnap.data();
+            <div class="card-top">
 
+                <img
+                    src="${u.profilePic || 'https://via.placeholder.com/150'}"
+                    class="user-pic"
+                >
 
-// DON'T SHOW MYSELF
-if(data.uid === uid) return;
+                <div class="user-details">
 
+                    <h3>${u.name || 'Unknown'}, ${u.age || '18'}</h3>
 
-// USER BOX
-const div = document.createElement("div");
+                    <div class="rate">
+                        ₹${u.rate || '0'} / Day
+                    </div>
 
-div.className = "user";
+                </div>
 
-div.innerHTML = `
+                <div class="comm-icons">
 
-<div class="left">
+                    <div
+                        class="btn-circle"
+                        onclick="openChat('${u.uid}','${u.name}')"
+                    >
+                        <i class="fa-solid fa-comment"></i>
+                    </div>
 
-<img src="${data.profilePic || ''}">
+                    <div
+                        class="btn-circle"
+                        onclick="openVideo('${u.uid}')"
+                    >
+                        <i class="fa-solid fa-video"></i>
+                    </div>
 
-<div>
+                </div>
 
-<div class="name">
+            </div>
 
-${data.name || 'User'}
+            <button
+                class="main-btn"
+                onclick="bookNow('${u.uid}')"
+            >
+                ಈಗಲೇ ಬುಕ್ ಮಾಡಿ
+            </button>
 
-</div>
+        </div>
 
-<div class="${data.online ? 'online':'offline'}">
+        `;
 
-${data.online ? 'Online':'Offline'}
-
-</div>
-
-</div>
-
-</div>
-
-
-<div class="actions">
-
-<button class="chatBtn"
-onclick="openChat('${data.uid}')">
-
-Chat
-
-</button>
-
-<button class="callBtn"
-onclick="callUser('${data.uid}')">
-
-Video Call
-
-</button>
-
-</div>
-
-`;
-
-usersDiv.appendChild(div);
+    });
 
 });
 
-});
+/* FUNCTIONS */
 
-}
+window.openChat = (uid,name)=>{
 
-
-// CHAT PAGE
-window.openChat = (id)=>{
-
-localStorage.setItem("chat_user",id);
-
-window.location.href="chat.html";
+    window.location.href =
+    `chat.html?target=${uid}&name=${encodeURIComponent(name)}`;
 
 };
 
+window.openVideo = (uid)=>{
 
-// VIDEO CALL
-window.callUser = async(id)=>{
-
-let room = [uid,id].sort().join("_");
-
-await setDoc(doc(db,"calls",room),{
-
-caller:uid,
-
-receiver:id,
-
-status:"calling",
-
-time:Date.now()
-
-});
-
-window.location.href=
-`connect.html?room=${room}&user=${uid}`;
+    window.location.href =
+    `video.html?room=${uid}`;
 
 };
 
+window.bookNow = (uid)=>{
 
-// CALL LISTENER
-let currentRoom="";
-
-function listenCalls(){
-
-onSnapshot(collection(db,"calls"),(snap)=>{
-
-snap.forEach((d)=>{
-
-let call = d.data();
-
-if(call.receiver===uid &&
-call.status==="calling"){
-
-currentRoom=d.id;
-
-document.getElementById("incoming").style.display="block";
-
-document.getElementById("callerText").innerText =
-"Incoming video call";
-
-
-// FIND CALLER PIC
-onSnapshot(collection(db,"users"),(u)=>{
-
-u.forEach((x)=>{
-
-let ud=x.data();
-
-if(ud.uid===call.caller){
-
-document.getElementById("callerPic").src =
-ud.profilePic;
-
-}
-
-});
-
-});
-
-}
-
-});
-
-});
-
-}
-
-
-// ACCEPT
-window.acceptCall = async()=>{
-
-await updateDoc(doc(db,"calls",currentRoom),{
-
-status:"accepted"
-
-});
-
-window.location.href=
-`connect.html?room=${currentRoom}&user=${uid}`;
+    alert("Booking Started : " + uid);
 
 };
 
+window.goProfile = ()=>{
 
-// REJECT
-window.rejectCall = async()=>{
-
-await updateDoc(doc(db,"calls",currentRoom),{
-
-status:"rejected"
-
-});
-
-document.getElementById("incoming").style.display="none";
+    window.location.href = "profile.html";
 
 };
 
