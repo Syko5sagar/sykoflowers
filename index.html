@@ -1,13 +1,14 @@
 <!DOCTYPE html>
-<html lang="kn">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rent bf/gf - Welcome</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;800&family=Playfair+Display:ital,wght@1,900&display=swap" rel="stylesheet">
+<title>SYKO LOVE</title>
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
 
 <style>
 
@@ -20,28 +21,68 @@ font-family:'Poppins',sans-serif;
 
 body{
 height:100vh;
+overflow:hidden;
 display:flex;
 justify-content:center;
 align-items:center;
-overflow:hidden;
-background:linear-gradient(-45deg,#000,#111,#1a001f,#000);
-background-size:400% 400%;
-animation:bg 12s ease infinite;
+background:#000;
+position:relative;
 }
 
-@keyframes bg{
+/* Background */
 
-0%{background-position:0% 50%}
+.bg{
+position:absolute;
+width:100%;
+height:100%;
+background:
+radial-gradient(circle at top left,#ff0080 0%,transparent 25%),
+radial-gradient(circle at bottom right,#6a00ff 0%,transparent 25%),
+#000;
+animation:bgmove 10s infinite alternate;
+z-index:-2;
+}
 
-50%{background-position:100% 50%}
+@keyframes bgmove{
+0%{
+transform:scale(1);
+filter:hue-rotate(0deg);
+}
+100%{
+transform:scale(1.1);
+filter:hue-rotate(30deg);
+}
+}
 
-100%{background-position:0% 50%}
+/* Floating Hearts */
+
+.heart{
+position:absolute;
+color:rgba(255,255,255,0.12);
+animation:float 10s linear infinite;
+}
+
+@keyframes float{
+
+0%{
+transform:translateY(100vh) scale(0.5);
+opacity:0;
+}
+
+50%{
+opacity:1;
+}
+
+100%{
+transform:translateY(-120vh) scale(1.2);
+opacity:0;
+}
 
 }
 
+/* Splash Screen */
 
-/* SPLASH */
-#splash-screen{
+#splash{
 position:fixed;
 width:100%;
 height:100%;
@@ -49,374 +90,275 @@ background:#000;
 display:flex;
 justify-content:center;
 align-items:center;
-z-index:1000;
-flex-direction:column;
+z-index:999;
+transition:1s;
 }
 
-.syko-wrap{
+.logo-animation{
 display:flex;
-gap:5px;
+gap:12px;
 }
 
-.syko-letter{
+.logo-animation span{
 font-size:65px;
 font-weight:800;
 opacity:0;
-color:white;
-transform:translateY(40px);
-animation:fadeUp 1s forwards;
+transform:translateY(30px);
+background:linear-gradient(135deg,#ff0080,#6a00ff);
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
+animation:show 0.6s forwards;
 }
 
-.syko-letter:nth-child(1){animation-delay:.4s}
-.syko-letter:nth-child(2){animation-delay:.8s}
-.syko-letter:nth-child(3){animation-delay:1.2s}
-.syko-letter:nth-child(4){animation-delay:1.6s}
+.logo-animation span:nth-child(1){animation-delay:0.2s;}
+.logo-animation span:nth-child(2){animation-delay:0.4s;}
+.logo-animation span:nth-child(3){animation-delay:0.6s;}
+.logo-animation span:nth-child(4){animation-delay:0.8s;}
 
-.live-text{
-margin-top:10px;
-font-size:20px;
-letter-spacing:8px;
-color:#ff007f;
-opacity:0;
-animation:fadeLive 1.5s forwards;
-animation-delay:2.2s;
-}
-
-@keyframes fadeUp{
-
-to{
+@keyframes show{
+100%{
 opacity:1;
-transform:translateY(0px);
+transform:translateY(0);
+}
 }
 
-}
+/* Main Card */
 
-@keyframes fadeLive{
-
-to{
-opacity:1;
-letter-spacing:3px;
-}
-
-}
-
-
-/* MAIN */
-#main-content{
-display:none;
-opacity:0;
-transition:1.5s;
-}
-
-#main-content.active{
-display:flex;
-opacity:1;
-}
-
-
-/* CARD */
 .container{
-backdrop-filter:blur(20px);
-background:rgba(255,255,255,0.05);
-border:1px solid rgba(255,255,255,0.1);
-padding:50px 40px;
+width:360px;
+padding:40px 30px;
 border-radius:30px;
+background:rgba(255,255,255,0.08);
+backdrop-filter:blur(18px);
+border:1px solid rgba(255,255,255,0.1);
 text-align:center;
-width:350px;
-box-shadow:0 0 40px rgba(255,0,150,0.1);
-animation:zoomIn 1s ease;
+box-shadow:0 0 35px rgba(0,0,0,0.5);
+display:none;
+animation:fade 1s ease;
 }
 
-@keyframes zoomIn{
+@keyframes fade{
 
 from{
-transform:scale(.7);
 opacity:0;
+transform:translateY(20px);
 }
 
 to{
-transform:scale(1);
 opacity:1;
+transform:translateY(0);
 }
 
 }
 
-
-/* ICON */
-.header-icon{
-font-size:70px;
+.logo-icon{
+font-size:80px;
 margin-bottom:20px;
-background:linear-gradient(45deg,#ff007f,#7000ff);
+background:linear-gradient(135deg,#ff0080,#6a00ff);
 -webkit-background-clip:text;
 -webkit-text-fill-color:transparent;
 }
 
+.title{
+font-size:35px;
+font-weight:700;
+margin-bottom:10px;
+}
 
-/* LOGO */
-.special-r{
-font-family:'Playfair Display',serif;
-font-size:60px;
-background:linear-gradient(45deg,#ff007f,#7000ff);
+.title span{
+background:linear-gradient(135deg,#ff0080,#6a00ff);
 -webkit-background-clip:text;
 -webkit-text-fill-color:transparent;
 }
 
-.logo-text{
-font-size:24px;
-color:#aaa;
-}
-
-
-/* SUB */
 .sub{
-color:#888;
-font-size:13px;
-margin-top:10px;
+font-size:14px;
+color:#bbb;
+margin-bottom:30px;
 }
 
+/* Google Button */
 
-/* BUTTON */
-.btn-google{
+.google-btn{
 width:100%;
-padding:15px;
+padding:16px;
 border:none;
-border-radius:15px;
-background:white;
-color:black;
-font-weight:600;
-margin-top:30px;
-cursor:pointer;
-transition:.3s;
-display:flex;
-justify-content:center;
-align-items:center;
+border-radius:18px;
+background:#fff;
 font-size:15px;
+font-weight:600;
+cursor:pointer;
+display:flex;
+align-items:center;
+justify-content:center;
+gap:12px;
+transition:0.4s;
 }
 
-.btn-google:hover{
-transform:scale(1.05);
-box-shadow:0 0 20px rgba(255,255,255,0.4);
+.google-btn:hover{
+transform:translateY(-3px);
+box-shadow:0 10px 25px rgba(255,255,255,0.2);
 }
 
-
-/* PARTICLES */
-.particle{
-position:absolute;
-width:5px;
-height:5px;
-background:#ff007f;
-border-radius:50%;
-animation:float 10s linear infinite;
-opacity:.7;
+.footer{
+margin-top:25px;
+font-size:12px;
+color:#999;
 }
 
-@keyframes float{
+/* Mobile */
 
-from{
-transform:translateY(100vh);
+@media(max-width:450px){
+
+.container{
+width:92%;
+padding:35px 25px;
 }
 
-to{
-transform:translateY(-10vh);
+.logo-animation span{
+font-size:50px;
 }
 
 }
 
 </style>
 </head>
-
 <body>
 
-<!-- PARTICLES -->
-<script>
+<div class="bg"></div>
 
-for(let i=0;i<30;i++){
+<!-- Floating Hearts -->
 
-let p=document.createElement("div");
+<i class="fa-solid fa-heart heart" style="left:10%;font-size:18px;animation-delay:0s;"></i>
 
-p.className="particle";
+<i class="fa-solid fa-heart heart" style="left:30%;font-size:24px;animation-delay:2s;"></i>
 
-p.style.left=Math.random()*100+"%";
+<i class="fa-solid fa-heart heart" style="left:50%;font-size:20px;animation-delay:4s;"></i>
 
-p.style.animationDuration=(5+Math.random()*7)+"s";
+<i class="fa-solid fa-heart heart" style="left:70%;font-size:28px;animation-delay:1s;"></i>
 
-p.style.opacity=Math.random();
+<i class="fa-solid fa-heart heart" style="left:90%;font-size:22px;animation-delay:5s;"></i>
 
-document.body.appendChild(p);
+<!-- Splash -->
 
-}
+<div id="splash">
 
-</script>
+<div class="logo-animation">
 
-
-<!-- SPLASH -->
-<div id="splash-screen">
-
-<div class="syko-wrap">
-
-<span class="syko-letter">S</span>
-<span class="syko-letter">Y</span>
-<span class="syko-letter">K</span>
-<span class="syko-letter">O</span>
-
-</div>
-
-<div class="live-text">
-
-LIVE
+<span>S</span>
+<span>Y</span>
+<span>K</span>
+<span>O</span>
 
 </div>
 
 </div>
 
+<!-- Main -->
 
-<!-- MAIN -->
-<div id="main-content">
+<div class="container" id="main">
 
-<div class="container">
-
-<i class="fa-solid fa-heart-pulse header-icon"></i>
-
-<div>
-
-<span class="special-r">R</span>
-
-<span class="logo-text">
-
-ent bf/gf
-
-</span>
-
+<div class="logo-icon">
+<i class="fa-solid fa-heart-pulse"></i>
 </div>
 
-<p class="sub">
+<div class="title">
+<span>SYKO</span> LOVE
+</div>
 
-ಮುಂದುವರಿಯಲು ಲಾಗಿನ್ ಆಗಿ
+<div class="sub">
+Premium Relationship Experience ❤️
+</div>
 
-</p>
+<button class="google-btn" id="googleBtn">
 
-<button class="btn-google" id="googleBtn">
+<img src="https://fonts.gstatic.com/s/i/productlogos/googleg/v6/24px.svg">
 
-<img src="https://fonts.gstatic.com/s/i/productlogos/googleg/v6/24px.svg"
-
-width="20"
-
-style="margin-right:10px;">
-
-Google ಮೂಲಕ ಲಾಗಿನ್
+Continue with Google
 
 </button>
 
+<div class="footer">
+Made with ❤️ by SYKO
 </div>
 
 </div>
 
-
-<!-- FIREBASE -->
 <script type="module">
 
-import { initializeApp }
-
-from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 
 import {
-
 getAuth,
 GoogleAuthProvider,
 signInWithPopup
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-}
+/* Firebase Config */
 
-from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
-
-// FIREBASE CONFIG
 const firebaseConfig = {
 
-apiKey:"AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
+apiKey: "AIzaSyCZl507ZDCKEEok8tn8GXoKaWdvhhSbNlQ",
 
-authDomain:"sykolive-846a3.firebaseapp.com",
+authDomain: "sykolive-846a3.firebaseapp.com",
 
-databaseURL:"https://sykolive-846a3-default-rtdb.firebaseio.com",
+projectId: "sykolive-846a3",
 
-projectId:"sykolive-846a3",
+storageBucket: "sykolive-846a3.appspot.com",
 
-storageBucket:"sykolive-846a3.firebasestorage.app",
+messagingSenderId: "123456789",
 
-messagingSenderId:"705797986997",
-
-appId:"1:705797986997:web:70c8263e3f712758bdbcfc"
+appId: "1:123456789:web:abcdef"
 
 };
 
+/* Firebase Start */
 
-// INIT
 const app = initializeApp(firebaseConfig);
 
 const auth = getAuth(app);
 
 const provider = new GoogleAuthProvider();
 
+/* Splash Screen */
 
-// SPLASH
-window.onload=()=>{
-
-setTimeout(()=>{
-
-document.getElementById("splash-screen").style.display="none";
-
-let m=document.getElementById("main-content");
-
-m.style.display="flex";
+window.addEventListener('load',()=>{
 
 setTimeout(()=>{
 
-m.classList.add("active");
+document.getElementById('splash').style.opacity='0';
 
-},100);
+setTimeout(()=>{
 
-},4500);
+document.getElementById('splash').style.display='none';
 
-};
+document.getElementById('main').style.display='block';
 
+},1000);
 
-// LOGIN
-document.getElementById("googleBtn").onclick = async()=>{
+},2500);
 
-const btn=document.getElementById("googleBtn");
+});
 
-btn.innerHTML="Loading...";
+/* Google Login */
 
-try{
+document.getElementById('googleBtn').addEventListener('click',()=>{
 
-const result = await signInWithPopup(auth,provider);
+signInWithPopup(auth,provider)
 
+.then((result)=>{
 
-// SAVE USER DATA
-localStorage.setItem("gmail_name",result.user.displayName || "");
+window.location.href="home.html";
 
-localStorage.setItem("gmail_email",result.user.email || "");
+})
 
+.catch((error)=>{
 
-// GO PROFILE PAGE
-window.location.href="profile.html";
+alert(error.message);
 
-}catch(e){
+});
 
-console.log(e);
-
-alert(e.message);
-
-btn.innerHTML=`
-<img src="https://fonts.gstatic.com/s/i/productlogos/googleg/v6/24px.svg"
-width="20"
-style="margin-right:10px;">
-Google ಮೂಲಕ ಲಾಗಿನ್
-`;
-
-}
-
-};
+});
 
 </script>
 
